@@ -4,21 +4,16 @@ import com.victor.EventDrop.exceptions.OccupantCreationException;
 import com.victor.EventDrop.rooms.dtos.RoomJoinEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
 @Service
-public class OccupantServiceImpl {
+public class OccupantServiceImpl implements OccupantService {
 
     private final OccupantRepository occupantRepository;
-    private final RabbitTemplate rabbitTemplate;
 
-    @RabbitListener(queues = "${room.join.queue-name}")
+    @Override
     public void createOccupant(RoomJoinEvent roomJoinEvent){
         log.info("Initiating room occupant creation for room: {}", roomJoinEvent.roomCode());
         Occupant occupant = Occupant

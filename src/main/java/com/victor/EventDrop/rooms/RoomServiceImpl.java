@@ -3,7 +3,9 @@ package com.victor.EventDrop.rooms;
 import com.victor.EventDrop.exceptions.NoSuchRoomException;
 import com.victor.EventDrop.exceptions.RoomCreationException;
 import com.victor.EventDrop.occupants.OccupantRole;
+import com.victor.EventDrop.rabbitmq.RoomJoinListenerService;
 import com.victor.EventDrop.rooms.config.RoomJoinConfigProperties;
+import com.victor.EventDrop.rooms.config.RoomQueueConfig;
 import com.victor.EventDrop.rooms.dtos.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +28,10 @@ public class RoomServiceImpl implements RoomService {
     private final RoomJoinConfigProperties roomJoinConfigProperties;
     private final RoomRepository roomRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final RoomQueueConfig roomQueueConfig;
     private final RoomMapper roomMapper;
     private final SecureRandom secureRandom;
+    private final RoomJoinListenerService roomJoinListenerService;
 
 
     //Orchestrates the creation of a room
@@ -51,7 +55,12 @@ public class RoomServiceImpl implements RoomService {
                     .build();
 
             roomRepository.save(room);
+
+            String queueName = roomQueueConfig.declareRoomJoinQueueAndBinding(roomCode);
+            roomJoinListenerService.startListeners(queueName);
+
             log.info("Successfully created room: {} with room code: {}", room.getRoomName(), room.getRoomCode());
+
             return joinRoom(new RoomJoinRequestDto(roomCreateRequestDto.username(), OccupantRole.OWNER ,roomCode));
 
         }catch (Exception e){
@@ -59,6 +68,8 @@ public class RoomServiceImpl implements RoomService {
             throw new RoomCreationException(String.format("Failed to create room with room-code: %s", roomCode), e);
         }
     }
+
+
 
     //Orchestrates room joins
     @Override
@@ -77,11 +88,12 @@ public class RoomServiceImpl implements RoomService {
         log.info("Found room with room code: {}. Joining... ", roomCode);
 
         UUID sessionId = UUID.randomUUID();
+        String routingKey = roomJoinConfigProperties.getRoutingKeyPrefix() + roomCode;
 
         //Sends a room creation event to create an occupant
         rabbitTemplate.convertAndSend(
                 roomJoinConfigProperties.getExchangeName(),
-                roomJoinConfigProperties.getRoutingKey(),
+                routingKey,
                 new RoomJoinEvent(roomJoinRequestDto.getUsername(), sessionId ,roomJoinRequestDto.getRole() ,roomJoinRequestDto.getRoomCode())
         );
 
