@@ -8,4 +8,6 @@ import java.util.UUID;
 @Repository
 public interface OccupantRepository extends CrudRepository<Occupant, UUID> {
     Occupant findBySessionId(String sessionId);
+
+    void deleteByRoomCode(String roomCode);
 }

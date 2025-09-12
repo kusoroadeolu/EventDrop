@@ -7,6 +7,7 @@ import com.victor.EventDrop.rabbitmq.RoomJoinListenerService;
 import com.victor.EventDrop.rooms.config.RoomJoinConfigProperties;
 import com.victor.EventDrop.rooms.config.RoomQueueConfig;
 import com.victor.EventDrop.rooms.dtos.*;
+import com.victor.EventDrop.rooms.events.RoomJoinEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -110,6 +111,12 @@ public class RoomServiceImpl implements RoomService {
                  room.getRoomName(),
                  Duration.between(LocalDateTime.now(), room.getExpiresAt()).toMinutes()
          )).toList();
+    }
+
+    @Override
+    public void stopAllListeners(String roomCode){
+        roomJoinListenerService.stopListener(roomJoinConfigProperties.getQueuePrefix() + roomCode);
+
     }
 
 

@@ -15,4 +15,6 @@ public interface RoomService {
     RoomJoinResponseDto joinRoom(RoomJoinRequestDto roomJoinRequestDto);
 
     List<RoomResponseDto> findAllActiveRooms();
+
+    void stopAllListeners(String roomCode);
 }

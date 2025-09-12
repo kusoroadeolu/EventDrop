@@ -1,4 +1,4 @@
-package com.victor.EventDrop.rooms.dtos;
+package com.victor.EventDrop.rooms.events;
 
 import com.victor.EventDrop.occupants.OccupantRole;
 

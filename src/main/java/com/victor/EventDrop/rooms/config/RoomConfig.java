@@ -13,10 +13,26 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 @RequiredArgsConstructor
 public class RoomConfig {
     private final RoomJoinConfigProperties roomJoinConfigProperties;
+    private final RoomExpiryConfigProperties roomExpiryConfigProperties;
 
     @Bean
     public DirectExchange roomJoinExchange(){
         return new DirectExchange(roomJoinConfigProperties.getExchangeName(), true, true);
+    }
+
+    @Bean
+    public DirectExchange roomExpiryExchange(){
+        return new DirectExchange(roomExpiryConfigProperties.getExchangeName(), true, false);
+    }
+
+    @Bean
+    public Queue roomExpiryQueue(){
+        return new Queue(roomExpiryConfigProperties.getQueueName(), true);
+    }
+
+    @Bean
+    public Binding roomExpiryBinding(Queue roomExpiryQueue, DirectExchange roomExpiryExchange){
+        return BindingBuilder.bind(roomExpiryQueue).to(roomExpiryExchange).with(roomExpiryConfigProperties.getRoutingKey());
     }
 
 
