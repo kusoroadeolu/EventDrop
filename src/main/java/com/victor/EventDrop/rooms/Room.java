@@ -24,7 +24,7 @@ public class Room {
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
 
-    @TimeToLive
     //In Seconds
+    @TimeToLive
     private long ttl;
 }

@@ -2,15 +2,20 @@ package com.victor.EventDrop.rooms;
 
 import com.victor.EventDrop.exceptions.NoSuchRoomException;
 import com.victor.EventDrop.exceptions.RoomCreationException;
+import com.victor.EventDrop.exceptions.RoomDeletionException;
+import com.victor.EventDrop.exceptions.RoomTtlExceededException;
+import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
-import com.victor.EventDrop.rabbitmq.RoomJoinListenerService;
-import com.victor.EventDrop.rooms.config.RoomJoinConfigProperties;
-import com.victor.EventDrop.rooms.config.RoomQueueConfig;
+import com.victor.EventDrop.rooms.configproperties.RoomJoinConfigProperties;
+import com.victor.EventDrop.rooms.configproperties.RoomLeaveConfigProperties;
 import com.victor.EventDrop.rooms.dtos.*;
 import com.victor.EventDrop.rooms.events.RoomJoinEvent;
+import com.victor.EventDrop.rooms.events.RoomLeaveEvent;
+import com.victor.EventDrop.rooms.listeners.RoomQueueListenerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -18,7 +23,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,13 +31,15 @@ import java.util.UUID;
 public class RoomServiceImpl implements RoomService {
 
     private final RoomJoinConfigProperties roomJoinConfigProperties;
+    private final RoomLeaveConfigProperties roomLeaveConfigProperties;
     private final RoomRepository roomRepository;
     private final RabbitTemplate rabbitTemplate;
-    private final RoomQueueConfig roomQueueConfig;
     private final RoomMapper roomMapper;
     private final SecureRandom secureRandom;
-    private final RoomJoinListenerService roomJoinListenerService;
+    private final RoomQueueListenerService roomQueueListenerService;
 
+    @Value("${room.max-ttl-in-minutes}")
+    private long maxTtlInMins;
 
     //Orchestrates the creation of a room
     @Override
@@ -41,8 +47,21 @@ public class RoomServiceImpl implements RoomService {
         log.info("Initiating room creation");
         String roomCode = generateRoomCode();
 
+        while(roomRepository.existsByRoomCode(roomCode)){
+            log.info("Found existing room with room code: {}. Regenerating room code...", roomCode);
+            roomCode = generateRoomCode();
+        }
+
         //TTL given is in minutes. Convert it to seconds
         long ttlInSeconds = roomCreateRequestDto.ttl() * 60;
+
+        //Cant create rooms that last more than 3 days
+        if(ttlInSeconds > maxTtlInMins){
+            log.info("Cannot create room with room-code {} because its max TTL was exceeded.", roomCode);
+            throw new RoomTtlExceededException(
+                    String.format("Room TTL of %d seconds exceeded the maximum of %d minutes.", ttlInSeconds, maxTtlInMins)
+            );
+        }
 
         try{
             LocalDateTime createdAt = LocalDateTime.now();
@@ -56,10 +75,7 @@ public class RoomServiceImpl implements RoomService {
                     .build();
 
             roomRepository.save(room);
-
-            String queueName = roomQueueConfig.declareRoomJoinQueueAndBinding(roomCode);
-            roomJoinListenerService.startListeners(queueName);
-
+            roomQueueListenerService.startListeners(roomCode);
             log.info("Successfully created room: {} with room code: {}", room.getRoomName(), room.getRoomCode());
 
             return joinRoom(new RoomJoinRequestDto(roomCreateRequestDto.username(), OccupantRole.OWNER ,roomCode));
@@ -70,24 +86,17 @@ public class RoomServiceImpl implements RoomService {
         }
     }
 
-
-
     //Orchestrates room joins
     @Override
     public RoomJoinResponseDto joinRoom(RoomJoinRequestDto roomJoinRequestDto){
         String roomCode = roomJoinRequestDto.getRoomCode();
         log.info("Attempting to join room: {}", roomCode);
-        
-        Optional<Room> optionalRoom = roomRepository.findByRoomCode(roomCode);
 
-        if(optionalRoom.isEmpty()){
-            log.info("Failed to find room with room code: {}", roomCode);
-            throw new NoSuchRoomException(String.format("Failed to find room with room code: %s", roomCode));
-        }
+        Room room = roomRepository
+                .findByRoomCode(roomCode)
+                .orElseThrow(() -> new NoSuchRoomException(String.format("Failed to find room with room code: %s", roomCode)));
 
-        Room room = optionalRoom.get();
         log.info("Found room with room code: {}. Joining... ", roomCode);
-
         UUID sessionId = UUID.randomUUID();
         String routingKey = roomJoinConfigProperties.getRoutingKeyPrefix() + roomCode;
 
@@ -95,10 +104,25 @@ public class RoomServiceImpl implements RoomService {
         rabbitTemplate.convertAndSend(
                 roomJoinConfigProperties.getExchangeName(),
                 routingKey,
-                new RoomJoinEvent(roomJoinRequestDto.getUsername(), sessionId ,roomJoinRequestDto.getRole() ,roomJoinRequestDto.getRoomCode())
+                new RoomJoinEvent(roomJoinRequestDto.getUsername(), sessionId ,roomJoinRequestDto.getRole() ,roomJoinRequestDto.getRoomCode(), room.getExpiresAt())
         );
 
         return roomMapper.toRoomJoinResponseDto(room, sessionId.toString(), roomJoinRequestDto.getUsername());
+    }
+
+    @Override
+    public void leaveRoom(Occupant occupant){
+        log.info("Handling room leave for occupant with ID: {}", occupant.getSessionId());
+        String roomCode = occupant.getRoomCode();
+        String routingKey = roomLeaveConfigProperties.getRoutingKeyPrefix() + roomCode;
+
+        rabbitTemplate.convertAndSend(
+                roomLeaveConfigProperties.getExchangeName(),
+                routingKey,
+                new RoomLeaveEvent(
+                        roomCode, occupant.getOccupantName(), occupant.getSessionId()
+                )
+        );
     }
 
     @Override
@@ -114,9 +138,13 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public void stopAllListeners(String roomCode){
-        roomJoinListenerService.stopListener(roomJoinConfigProperties.getQueuePrefix() + roomCode);
-
+    public void deleteByRoomCode(String roomCode){
+        try{
+            roomRepository.deleteById(roomCode);
+        }catch (Exception e){
+            log.info("Failed to delete room with room code: {}", roomCode);
+            throw new RoomDeletionException(String.format("Failed to delete room with room code: %s", roomCode));
+        }
     }
 
 

@@ -27,13 +27,13 @@ public class RoomController {
     @PostMapping("/create")
     public ResponseEntity<RoomJoinResponseDto> createRoom(@Valid @RequestBody RoomCreateRequestDto requestDto){
         RoomJoinResponseDto responseDto = roomService.createRoom(requestDto);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
+        return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
     }
 
     @PostMapping("/join")
     public ResponseEntity<RoomJoinResponseDto> joinRoom(@Valid @RequestBody RoomJoinRequestDto roomJoinRequestDto){
         RoomJoinResponseDto responseDto = roomService.joinRoom(roomJoinRequestDto);
-        roomJoinRequestDto.setRole(OccupantRole.OWNER);
+        roomJoinRequestDto.setRole(OccupantRole.OCCUPANT);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 

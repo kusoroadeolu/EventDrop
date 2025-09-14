@@ -1,16 +1,16 @@
-package com.victor.EventDrop.rooms.config;
+package com.victor.EventDrop.rooms.configproperties;
 
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@ConfigurationProperties("room.expiry")
+@ConfigurationProperties("room.join")
 @Component
 @Getter
 @Setter
-public class RoomExpiryConfigProperties {
-    private String queueName;
+public class RoomJoinConfigProperties {
+    private String queuePrefix;
+    private String routingKeyPrefix;
     private String exchangeName;
-    private String routingKey;
 }

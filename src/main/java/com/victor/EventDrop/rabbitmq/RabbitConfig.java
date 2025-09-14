@@ -1,5 +1,6 @@
 package com.victor.EventDrop.rabbitmq;
 
+import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
 import com.victor.EventDrop.occupants.OccupantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -32,13 +33,6 @@ public class RabbitConfig {
     @Bean
     public RabbitAdmin rabbitAdmin(CachingConnectionFactory cachingConnectionFactory){
         return new RabbitAdmin(cachingConnectionFactory);
-    }
-
-    @Bean
-    public MessageListenerAdapter roomJoinAdapter(OccupantService occupantService, Jackson2JsonMessageConverter messageConverter){
-        MessageListenerAdapter adapter = new MessageListenerAdapter(occupantService, "createOccupant");
-        adapter.setMessageConverter(messageConverter);
-        return adapter;
     }
 
 }

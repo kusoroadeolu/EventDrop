@@ -10,4 +10,8 @@ public interface OccupantRepository extends CrudRepository<Occupant, UUID> {
     Occupant findBySessionId(String sessionId);
 
     void deleteByRoomCode(String roomCode);
+
+    void deleteByRoomCodeAndSessionId(String roomCode, String sessionId);
+
+    void deleteBySessionId(String sessionId);
 }

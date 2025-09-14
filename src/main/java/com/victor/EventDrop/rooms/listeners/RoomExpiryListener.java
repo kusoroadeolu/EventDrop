@@ -1,45 +1,61 @@
 package com.victor.EventDrop.rooms.listeners;
 
-import com.victor.EventDrop.rabbitmq.RoomJoinListenerService;
 import com.victor.EventDrop.rooms.Room;
+import com.victor.EventDrop.rooms.RoomQueueDeclarationService;
 import com.victor.EventDrop.rooms.RoomRepository;
 import com.victor.EventDrop.rooms.RoomService;
-import com.victor.EventDrop.rooms.config.RoomExpiryConfigProperties;
-import com.victor.EventDrop.rooms.config.RoomJoinConfigProperties;
+import com.victor.EventDrop.rooms.configproperties.RoomExpiryConfigProperties;
 import com.victor.EventDrop.rooms.events.RoomExpiryEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Listens for Redis key expiration events to handle room cleanup.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class RoomExpiryListener {
 
-    private final RoomRepository roomRepository;
     private final RoomService roomService;
+    private final RoomQueueListenerService roomQueueListenerService;
     private final RabbitTemplate rabbitTemplate;
+    private final RoomQueueDeclarationService roomQueueDeclarationService;
     private final RoomExpiryConfigProperties roomExpiryConfigProperties;
 
+    /**
+     * Handles the expiration of a room key in Redis.
+     *
+     * @param expiredEvent The Redis key expired event containing the expired Room object.
+     */
     @EventListener
     public void handleRoomExpiry(RedisKeyExpiredEvent<Room> expiredEvent){
-        var expiredValue = expiredEvent.getValue();
+        byte[] expiredEventId = expiredEvent.getId();
+        String roomCode = new String(expiredEventId, StandardCharsets.UTF_8);
 
-        if(expiredValue instanceof Room expiredRoom){
-            log.info("Handling expired room: {}", expiredRoom.getRoomCode());
-            roomRepository.delete(expiredRoom);
-            roomService.stopAllListeners(expiredRoom.getRoomCode());
+        log.info("Handling expired room: {}", roomCode);
+
+        try{
+            roomService.deleteByRoomCode(roomCode);
+            roomQueueListenerService.stopAllListeners(roomCode);
+            roomQueueDeclarationService.deleteAllQueues(roomCode);
+
+            // Publishes a message to RabbitMQ to notify other services of the room's expiration.
             rabbitTemplate.convertAndSend(
                     roomExpiryConfigProperties.getExchangeName(),
                     roomExpiryConfigProperties.getRoutingKey(),
-                    new RoomExpiryEvent(expiredRoom.getRoomCode())
+                    new RoomExpiryEvent(roomCode)
             );
-            log.info("Successfully deleted expired room with room code: {}", expiredRoom.getRoomCode());
+        } catch (Exception e){
+            log.error("Failed to handle room expiry for room with code: {}. Cause: {}", roomCode, e.getMessage(), e);
         }
+
     }
-
-
 }

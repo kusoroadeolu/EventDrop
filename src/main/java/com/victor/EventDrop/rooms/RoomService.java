@@ -1,5 +1,6 @@
 package com.victor.EventDrop.rooms;
 
+import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinResponseDto;
@@ -14,7 +15,9 @@ public interface RoomService {
     //Orchestrates room joins
     RoomJoinResponseDto joinRoom(RoomJoinRequestDto roomJoinRequestDto);
 
+    void leaveRoom(Occupant occupant);
+
     List<RoomResponseDto> findAllActiveRooms();
 
-    void stopAllListeners(String roomCode);
+    void deleteByRoomCode(String roomCode);
 }
