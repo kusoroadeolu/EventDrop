@@ -19,5 +19,7 @@ public interface RoomService {
 
     List<RoomResponseDto> findAllActiveRooms();
 
+    void deleteRoom(Occupant occupant);
+
     void deleteByRoomCode(String roomCode);
 }

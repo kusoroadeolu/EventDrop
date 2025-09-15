@@ -8,7 +8,7 @@ public class FileDropMapper {
      FileDropResponseDto toResponseDto(FileDrop fileDrop){
           return new FileDropResponseDto(
                   fileDrop.getFileId().toString(),
-                  fileDrop.getFileName(),
+                  fileDrop.getOriginalFileName(),
                   fileDrop.getUploadedAt()
           );
      }

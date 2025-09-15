@@ -126,6 +126,12 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    public void deleteRoom(Occupant occupant){
+        leaveRoom(occupant);
+        deleteByRoomCode(occupant.getRoomCode());
+    }
+
+    @Override
     public List<RoomResponseDto> findAllActiveRooms(){
          List<Room> rooms = (List<Room>) roomRepository.findAll();
          return rooms.stream()
@@ -137,10 +143,13 @@ public class RoomServiceImpl implements RoomService {
          )).toList();
     }
 
+
+
     @Override
     public void deleteByRoomCode(String roomCode){
         try{
             roomRepository.deleteById(roomCode);
+            log.info("Successfully deleted room with room code: {}", roomCode);
         }catch (Exception e){
             log.info("Failed to delete room with room code: {}", roomCode);
             throw new RoomDeletionException(String.format("Failed to delete room with room code: %s", roomCode));

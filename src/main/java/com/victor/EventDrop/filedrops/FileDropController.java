@@ -1,17 +1,20 @@
 package com.victor.EventDrop.filedrops;
 
 import com.victor.EventDrop.occupants.Occupant;
+import com.victor.EventDrop.rooms.events.RoomEvent;
+import com.victor.EventDrop.rooms.events.RoomEventType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,19 +22,52 @@ import java.util.concurrent.CompletableFuture;
 @RequestMapping("/filedrop")
 public class FileDropController {
 
-    private final FileDropServiceImpl fileDropService;
+    private final FileDropService fileDropService;
 
-    @PostMapping("/upload")
-    //@PreAuthorize("hasRole('OWNER')")
-    public  ResponseEntity<FileDropResponseDto> uploadFile(@AuthenticationPrincipal Occupant occupant, @RequestParam("file")MultipartFile file) throws IOException {
-        var fileDropResponseDto = fileDropService.uploadFile(occupant.getRoomCode(), occupant.getRoomExpiry() ,file);
+    @PostMapping("/files")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<FileDropResponseDto> uploadFile(@AuthenticationPrincipal Occupant occupant, @RequestParam("file") MultipartFile file) {
+        var fileDropResponseDto = fileDropService.uploadFile(occupant.getRoomCode(), occupant.getRoomExpiry(), file);
+        fileDropService.publishRoomEvent(new RoomEvent(
+                occupant.getOccupantName() + " uploaded a file",
+                LocalDateTime.now(),
+                RoomEventType.ROOM_FILE_UPLOAD,
+                null
+        ));
         return new ResponseEntity<>(fileDropResponseDto, HttpStatus.CREATED);
-
     }
 
-    @GetMapping("/download/{id}")
-    public ResponseEntity<CompletableFuture<String>> downloadFile(@AuthenticationPrincipal Occupant occupant, @PathVariable("id") String fileId){
-        CompletableFuture<String> downloadUrl = fileDropService.downloadFileAsync( UUID.fromString(fileId), occupant.getRoomCode());
+    @PostMapping("/files/batch")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<BatchUploadResult> uploadFiles(@AuthenticationPrincipal Occupant occupant, @RequestParam("file") List<MultipartFile> files) {
+        var fileDropResponseDto = fileDropService.uploadFiles(occupant.getRoomCode(), occupant.getRoomExpiry(), files);
+        fileDropService.publishRoomEvent(new RoomEvent(
+                occupant.getOccupantName() + " uploaded a file",
+                LocalDateTime.now(),
+                RoomEventType.ROOM_BATCH_FILE_UPLOAD,
+                null
+        ));
+        return new ResponseEntity<>(fileDropResponseDto, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/files/{id}")
+    public ResponseEntity<FileDownloadResponseDto> downloadFile(@AuthenticationPrincipal Occupant occupant, @PathVariable("id") String fileId) {
+        FileDownloadResponseDto downloadUrl = fileDropService.downloadFile(UUID.fromString(fileId), occupant.getRoomCode());
         return ResponseEntity.status(302).body(downloadUrl);
+    }
+
+    @DeleteMapping("/files")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<BatchDeleteResult> deleteFiles(@AuthenticationPrincipal Occupant occupant, @RequestBody List<String> fileIds) {
+        List<UUID> uuids = fileIds.stream().map(String::trim).map(UUID::fromString).toList();
+        var batchDto = fileDropService.deleteFiles(occupant.getRoomCode(), uuids);
+        String notification = uuids.size() > 1 ? occupant.getOccupantName() + " deleted multiple files" : occupant.getOccupantName() + " deleted a file";
+        fileDropService.publishRoomEvent(new RoomEvent(
+                notification,
+                LocalDateTime.now(),
+                RoomEventType.ROOM_BATCH_FILE_DELETE,
+                null
+        ));
+        return new ResponseEntity<>(batchDto, HttpStatus.NO_CONTENT);
     }
 }

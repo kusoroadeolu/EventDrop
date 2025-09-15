@@ -10,4 +10,6 @@ public interface FileDropRepository extends CrudRepository<FileDrop, UUID> {
     List<FileDrop> findByRoomCode(String roomCode);
 
     void deleteByRoomCodeAndFileName(String roomId, String fileName);
+
+    void deleteByRoomCode(String s);
 }
