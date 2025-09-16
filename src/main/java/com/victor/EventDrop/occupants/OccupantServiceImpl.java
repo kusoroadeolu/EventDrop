@@ -11,7 +11,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -147,8 +146,8 @@ public class OccupantServiceImpl implements OccupantService {
 
         String sessionId = new String(keyBytes, StandardCharsets.UTF_8);
 
-        if (sessionId.isEmpty()){
-            log.warn("Received Redis expiry event with null or empty key");
+        if (sessionId.length() <= 8){
+            log.warn("Received Redis expiry event with invalid session ID");
             return;
         }
 

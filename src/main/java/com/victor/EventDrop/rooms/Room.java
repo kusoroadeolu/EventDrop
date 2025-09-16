@@ -26,5 +26,5 @@ public class Room {
 
     //In Seconds
     @TimeToLive
-    private long ttl;
+    private double ttl;
 }

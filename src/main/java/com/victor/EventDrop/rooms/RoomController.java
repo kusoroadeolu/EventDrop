@@ -39,14 +39,14 @@ public class RoomController {
 
     @PostMapping("/join")
     public ResponseEntity<RoomJoinResponseDto> joinRoom(@Valid @RequestBody RoomJoinRequestDto roomJoinRequestDto){
-        RoomJoinResponseDto responseDto = roomService.joinRoom(roomJoinRequestDto);
         roomJoinRequestDto.setRole(OccupantRole.OCCUPANT);
+        RoomJoinResponseDto responseDto = roomService.joinRoom(roomJoinRequestDto);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
 
     @DeleteMapping("/leave")
-    @PreAuthorize("hasRole('OWNER')")
+    @PreAuthorize("hasAnyRole('OCCUPANT', 'OWNER')")
     public ResponseEntity<Void> leaveRoom(@AuthenticationPrincipal Occupant occupant){
         roomService.leaveRoom(occupant);
         return new ResponseEntity<>(HttpStatus.OK);

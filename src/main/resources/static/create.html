@@ -1,0 +1,452 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventDrop - Create or Join Room</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <style>
+        @font-face {
+            font-family: 'AlimamaShuHeiTi';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/AlimamaShuHeiTi-Bold.otf') format('opentype');
+            font-weight: bold;
+        }
+        
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Regular.ttf') format('truetype');
+            font-weight: normal;
+        }
+        
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+        }
+        
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf') format('truetype');
+            font-weight: bold;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'MiSans', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            width: 1440px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            width: 100%;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+        
+        .logo {
+            font-family: 'AlimamaShuHeiTi', sans-serif;
+            font-size: 28px;
+            color: #3498db;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo i {
+            margin-right: 8px;
+            font-size: 32px;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        
+        nav ul li {
+            margin-left: 30px;
+        }
+        
+        nav ul li a {
+            color: #555;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 16px;
+        }
+        
+        nav ul li a:hover {
+            color: #3498db;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            padding: 60px 0;
+            min-height: calc(100vh - 140px);
+        }
+        
+        .room-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            max-width: 600px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        
+        /* Tab Styles */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 18px 0;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #777;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .tab.active {
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #3498db;
+        }
+        
+        /* Form Styles */
+        .tab-content {
+            padding: 30px;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: 'MiSans', sans-serif;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+        }
+        
+        .form-control.invalid {
+            border-color: #e74c3c;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 6px;
+            display: none;
+        }
+        
+        .error-message.visible {
+            display: block;
+            animation: slideDown 0.3s;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            background-color: #3498db;
+            color: white;
+            font-family: 'MiSans', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn:disabled {
+            background-color: #95c8ec;
+            cursor: not-allowed;
+        }
+        
+        /* Footer Styles */
+        footer {
+            padding: 20px 0;
+            text-align: center;
+            color: #777;
+            border-top: 1px solid #eee;
+            background-color: #fff;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+        <div class="header-content">
+            <a href="#" class="logo">
+                <i class="ri-bubble-chart-fill"></i>
+                EventDrop
+            </a>
+        </div>
+    </div>
+</header>
+
+<div class="main-content">
+    <div class="container">
+        <div class="room-card">
+            <div class="tabs">
+                <div class="tab active" id="create-tab">Create Room</div>
+                <div class="tab" id="join-tab">Join Room</div>
+            </div>
+
+            <div class="tab-content">
+                <!-- Create Room Form -->
+                <div class="tab-pane active" id="create-pane">
+                    <form id="create-form">
+                        <div class="form-group">
+                            <label for="create-room-name">Room Name</label>
+                            <input type="text" id="create-room-name" class="form-control" placeholder="Enter room name" minlength="3" maxlength="20" required>
+                            <div class="error-message" id="create-room-name-error">Room name must be 3-20 characters</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="room-ttl">Time to Live (minutes)</label>
+                            <input type="number" id="room-ttl" class="form-control" placeholder="Enter room duration" min="5" max="1440" required>
+                            <div class="error-message" id="room-ttl-error">Duration must be between 5 and 1440 minutes</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="create-username">Username</label>
+                            <input type="text" id="create-username" class="form-control" placeholder="Enter your username" minlength="3" maxlength="20" required>
+                            <div class="error-message" id="create-username-error">Username must be 3-20 characters</div>
+                        </div>
+
+                        <button type="submit" class="btn" id="create-submit" disabled>Create Room</button>
+                    </form>
+                </div>
+
+                <!-- Join Room Form -->
+                <div class="tab-pane" id="join-pane">
+                    <form id="join-form">
+                        <div class="form-group">
+                            <label for="join-username">Username</label>
+                            <input type="text" id="join-username" class="form-control" placeholder="Enter your username" minlength="3" maxlength="20" required>
+                            <div class="error-message" id="join-username-error">Username must be 3-20 characters</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="room-code">Room Code</label>
+                            <input type="text" id="room-code" class="form-control" placeholder="Enter 8-character room code" minlength="8" maxlength="8" required>
+                            <div class="error-message" id="room-code-error">Room code must be exactly 8 characters</div>
+                        </div>
+
+                        <button type="submit" class="btn" id="join-submit" disabled>Join Room</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p>© 2025 EventDrop</p>
+    </div>
+</footer>
+
+<script>
+    // Tab switching functionality
+    document.getElementById('create-tab').addEventListener('click', function() {
+        document.getElementById('create-tab').classList.add('active');
+        document.getElementById('join-tab').classList.remove('active');
+        document.getElementById('create-pane').classList.add('active');
+        document.getElementById('join-pane').classList.remove('active');
+    });
+
+    document.getElementById('join-tab').addEventListener('click', function() {
+        document.getElementById('join-tab').classList.add('active');
+        document.getElementById('create-tab').classList.remove('active');
+        document.getElementById('join-pane').classList.add('active');
+        document.getElementById('create-pane').classList.remove('active');
+    });
+
+    // Form validation for Create Room
+    const createRoomName = document.getElementById('create-room-name');
+    const roomTtl = document.getElementById('room-ttl');
+    const createUsername = document.getElementById('create-username');
+    const createSubmit = document.getElementById('create-submit');
+
+    function validateCreateForm() {
+        let isValid = true;
+
+        // Validate room name
+        if (createRoomName.value.length < 3 || createRoomName.value.length > 20) {
+            createRoomName.classList.add('invalid');
+            document.getElementById('create-room-name-error').classList.add('visible');
+            isValid = false;
+        } else {
+            createRoomName.classList.remove('invalid');
+            document.getElementById('create-room-name-error').classList.remove('visible');
+        }
+
+        // Validate TTL
+        if (roomTtl.value < 5 || roomTtl.value > 1440 || roomTtl.value === '') {
+            roomTtl.classList.add('invalid');
+            document.getElementById('room-ttl-error').classList.add('visible');
+            isValid = false;
+        } else {
+            roomTtl.classList.remove('invalid');
+            document.getElementById('room-ttl-error').classList.remove('visible');
+        }
+
+        // Validate username
+        if (createUsername.value.length < 3 || createUsername.value.length > 20) {
+            createUsername.classList.add('invalid');
+            document.getElementById('create-username-error').classList.add('visible');
+            isValid = false;
+        } else {
+            createUsername.classList.remove('invalid');
+            document.getElementById('create-username-error').classList.remove('visible');
+        }
+
+        createSubmit.disabled = !isValid;
+    }
+
+    createRoomName.addEventListener('input', validateCreateForm);
+    roomTtl.addEventListener('input', validateCreateForm);
+    createUsername.addEventListener('input', validateCreateForm);
+
+    // Form validation for Join Room
+    const joinUsername = document.getElementById('join-username');
+    const roomCode = document.getElementById('room-code');
+    const joinSubmit = document.getElementById('join-submit');
+
+    function validateJoinForm() {
+        let isValid = true;
+
+        // Validate username
+        if (joinUsername.value.length < 3 || joinUsername.value.length > 20) {
+            joinUsername.classList.add('invalid');
+            document.getElementById('join-username-error').classList.add('visible');
+            isValid = false;
+        } else {
+            joinUsername.classList.remove('invalid');
+            document.getElementById('join-username-error').classList.remove('visible');
+        }
+
+        // Validate room code
+        if (roomCode.value.length !== 8) {
+            roomCode.classList.add('invalid');
+            document.getElementById('room-code-error').classList.add('visible');
+            isValid = false;
+        } else {
+            roomCode.classList.remove('invalid');
+            document.getElementById('room-code-error').classList.remove('visible');
+        }
+
+        joinSubmit.disabled = !isValid;
+    }
+
+    joinUsername.addEventListener('input', validateJoinForm);
+    roomCode.addEventListener('input', validateJoinForm);
+
+    // Form submission
+    document.getElementById('create-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Creating room: ' + createRoomName.value);
+        // In a real application, you would submit the form data to the server here
+    });
+
+    document.getElementById('join-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Joining room with code: ' + roomCode.value);
+        // In a real application, you would submit the form data to the server here
+    });
+</script>
+</body>
+</html>

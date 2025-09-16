@@ -74,8 +74,9 @@ public class FileDropEventListener {
         }
 
         String fileId = new String(keyBytes, StandardCharsets.UTF_8).trim();
-        if (fileId.isEmpty()) {
-            log.warn("Received Redis expiry event with empty file ID");
+
+        if (fileId.length() <= 8) {
+            log.warn("Received Redis expiry event with invalid file ID");
             return;
         }
 

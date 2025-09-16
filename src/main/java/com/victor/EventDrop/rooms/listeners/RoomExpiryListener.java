@@ -39,16 +39,12 @@ public class RoomExpiryListener {
         byte[] expiredEventId = expiredEvent.getId();
         String roomCode = new String(expiredEventId, StandardCharsets.UTF_8);
 
-        log.info("Handling expired room: {}", roomCode);
-        UUID uuid;
-
-        //Since room codes are strings and not UUIDs, if this throws an ex, return
-        try{
-            uuid = UUID.fromString(roomCode);
+        //Since room codes are strings and not UUIDs, return
+        if (roomCode.length() != 8){
             return;
-        }catch (IllegalArgumentException e){
-            log.info("Invalid UUID: {}", roomCode);
         }
+
+        log.info("Handling expired room: {}", roomCode);
 
         try{
             roomService.deleteByRoomCode(roomCode);

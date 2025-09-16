@@ -1,0 +1,416 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventDrop - Ephemeral File Sharing & Collaboration</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'AlibabaSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/AlibabaSans-Regular.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'AlibabaSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/AlibabaSans-Medium.otf') format('opentype');
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'AlibabaSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/Alibaba-PuHuiTi-Bold.otf') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'AlibabaSans', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            overflow-x: hidden;
+            width: 1440px;
+            margin: 0 auto;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1440px;
+            z-index: 1000;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #3498db;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 32px;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 30px;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: #555;
+            font-weight: 500;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        nav ul li a:hover {
+            color: #3498db;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            padding: 160px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%233498db' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E") repeat;
+            z-index: 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6);
+        }
+
+        /* Analytics Section */
+        .analytics {
+            padding: 100px 0;
+            background-color: white;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .stat-box {
+            flex: 1;
+            text-align: center;
+            padding: 30px;
+            position: relative;
+        }
+
+        .stat-box:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 20%;
+            height: 60%;
+            width: 1px;
+            background-color: #e0e0e0;
+        }
+
+        .stat-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-number i {
+            margin-right: 15px;
+            font-size: 36px;
+            opacity: 0.8;
+        }
+
+        .stat-label {
+            font-size: 18px;
+            color: #555;
+        }
+
+        /* Footer */
+        footer {
+            padding: 30px 0;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-top: 1px solid #eaeaea;
+        }
+
+        .footer-text {
+            color: #777;
+            font-size: 14px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                padding: 15px;
+            }
+
+            .logo {
+                margin-bottom: 15px;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            nav ul li {
+                margin: 10px 0;
+            }
+
+            .hero {
+                padding: 120px 0 80px;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 18px;
+            }
+
+            .stats-container {
+                flex-direction: column;
+            }
+
+            .stat-box {
+                margin-bottom: 30px;
+            }
+
+            .stat-box:not(:last-child)::after {
+                display: none;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1, .hero p, .btn-primary {
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .hero p {
+            animation-delay: 0.2s;
+        }
+
+        .btn-primary {
+            animation-delay: 0.4s;
+        }
+
+        /* Counter Animation */
+        .stat-number {
+            opacity: 0;
+        }
+
+        .stat-number.animated {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+<!-- Header -->
+<header>
+    <div class="header-container">
+        <a href="#" class="logo">
+            <i class="ri-cloud-line"></i>
+            EventDrop
+        </a>
+    </div>
+</header>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container hero-content">
+        <h1>Share Files & Collaborate in Real-Time</h1>
+        <p>Create or join ephemeral rooms to share files and collaborate in real-time.</p>
+        <a href="#" class="btn-primary">Start your file sharing journey</a>
+    </div>
+</section>
+
+<!-- Analytics Section -->
+<section class="analytics">
+    <div class="container stats-container">
+        <div class="stat-box">
+            <div class="stat-number" data-count="1250">
+                <i class="ri-home-4-line"></i>
+                <span>0</span>
+            </div>
+            <div class="stat-label">Total Rooms Created</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-number" data-count="15780">
+                <i class="ri-upload-cloud-2-line"></i>
+                <span>0</span>
+            </div>
+            <div class="stat-label">Files Uploaded</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-number" data-count="42350">
+                <i class="ri-download-cloud-2-line"></i>
+                <span>0</span>
+            </div>
+            <div class="stat-label">Files Downloaded</div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p class="footer-text">© 2025 EventDrop</p>
+    </div>
+</footer>
+
+<script>
+    // Counter Animation
+    function animateCounters() {
+        const counters = document.querySelectorAll('.stat-number');
+
+        const options = {
+            threshold: 0.5
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const counter = entry.target;
+                    const countTo = parseInt(counter.getAttribute('data-count'));
+                    const span = counter.querySelector('span');
+                    let count = 0;
+
+                    counter.classList.add('animated');
+
+                    const updateCount = () => {
+                        const increment = countTo / 50;
+                        if (count < countTo) {
+                            count += increment;
+                            span.textContent = Math.ceil(count).toLocaleString();
+                            setTimeout(updateCount, 30);
+                        } else {
+                            span.textContent = countTo.toLocaleString();
+                        }
+                    };
+
+                    updateCount();
+                    observer.unobserve(counter);
+                }
+            });
+        }, options);
+
+        counters.forEach(counter => {
+            observer.observe(counter);
+        });
+    }
+
+    // Run animation when page loads
+    document.addEventListener('DOMContentLoaded', animateCounters);
+</script>
+</body>
+</html>

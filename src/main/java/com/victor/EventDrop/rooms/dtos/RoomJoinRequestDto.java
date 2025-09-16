@@ -22,6 +22,8 @@ public class RoomJoinRequestDto{
 
         private String roomCode;
 
+
+        //Only the roomcode and the username is needed info on the front end. Dont include the occupant role
         public RoomJoinRequestDto(String username, String roomCode){
             this.roomCode = roomCode;
             this.username = username;

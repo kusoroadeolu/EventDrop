@@ -76,6 +76,7 @@ public class SessionFilter extends OncePerRequestFilter {
         Occupant occupant = occupantRepository.findBySessionId(sessionId);
 
         if(occupant != null){
+            log.info("Occupant role: {}", occupant.getOccupantRole());
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(occupant, null , List.of(occupant.getOccupantRole()));
             SecurityContextHolder.getContext().setAuthentication(authToken);

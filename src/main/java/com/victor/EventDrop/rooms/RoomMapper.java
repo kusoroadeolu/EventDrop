@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 public class RoomMapper {
     public RoomJoinResponseDto toRoomJoinResponseDto(Room room, String sessionId, String username){
         return new RoomJoinResponseDto(
-                room.getRoomCode(),
                 room.getRoomName(),
                 username,
                 sessionId,

@@ -78,7 +78,7 @@ public class RoomServiceImpl implements RoomService {
         }
 
         //TTL given is in minutes. Convert it to seconds
-        long ttlInSeconds = roomCreateRequestDto.ttl() * 60;
+        double ttlInSeconds = roomCreateRequestDto.ttl() * 60.0;
 
         try{
             LocalDateTime createdAt = LocalDateTime.now();
@@ -88,7 +88,7 @@ public class RoomServiceImpl implements RoomService {
                     .roomName(roomCreateRequestDto.roomName())
                     .ttl(ttlInSeconds)
                     .createdAt(createdAt)
-                    .expiresAt(createdAt.plusMinutes(roomCreateRequestDto.ttl()))
+                    .expiresAt(createdAt.plusSeconds((long) ttlInSeconds))
                     .build();
 
             roomRepository.save(room);

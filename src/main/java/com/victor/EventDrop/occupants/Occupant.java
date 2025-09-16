@@ -15,7 +15,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@RedisHash(value = "occupant", timeToLive = 180L)
+@RedisHash(value = "occupant", timeToLive = 300L)
 @Builder
 public class Occupant {
 
