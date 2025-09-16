@@ -22,4 +22,6 @@ public interface RoomService {
     void deleteRoom(Occupant occupant);
 
     void deleteByRoomCode(String roomCode);
+
+    Room findByRoomCode(String roomCode);
 }

@@ -10,10 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -21,11 +24,17 @@ import java.util.UUID;
 @Service
 public class OccupantServiceImpl implements OccupantService {
 
+    private final RedisTemplate<String, Object> redisTemplate;
     private final OccupantRepository occupantRepository;
 
     //Listens for room join events to create occupants
+    /**
+     * A listener method which listens for {@link RoomJoinEvent} events to create occupants for the room
+     * @param roomJoinEvent The event containing metadata relating to room joins
+     * @return The saved occupant's username
+     * */
     @Override
-    public void createOccupant(RoomJoinEvent roomJoinEvent){
+    public String createOccupant(RoomJoinEvent roomJoinEvent){
         log.info("Initiating room occupant creation for room: {}", roomJoinEvent.roomCode());
         Occupant occupant = Occupant
                 .builder()
@@ -36,10 +45,12 @@ public class OccupantServiceImpl implements OccupantService {
                 .roomExpiry(roomJoinEvent.roomExpiry())
                 .build();
 
+
         try {
             log.info("Attempting to save occupant: {}", occupant.getOccupantName());
-            occupantRepository.save(occupant);
+            var saved = occupantRepository.save(occupant);
             log.info("Successfully saved occupant: {}", occupant.getOccupantName());
+            return saved.getOccupantName();
         }catch (Exception e){
             log.info("An unexpected error occurred while trying to save occupant: {}", occupant.getOccupantName(), e);
             throw new OccupantCreationException(String.format("An unexpected error occurred while trying to save occupant: %s", occupant.getOccupantName()), e);
@@ -47,61 +58,113 @@ public class OccupantServiceImpl implements OccupantService {
 
     }
 
-    //Listens for room join events to create occupants
+    /**
+     * A listener method which listens for {@link RoomLeaveEvent} events to delete occupants
+     * @param roomLeaveEvent The event containing metadata relating to room leave
+     * */
     @Override
-    public void deleteOccupant(RoomLeaveEvent roomLeaveEvent){
+    public Boolean deleteOccupant(RoomLeaveEvent roomLeaveEvent){
         log.info("Initiating room occupant deletion for room: {}. Occupant name: {}", roomLeaveEvent.roomCode(), roomLeaveEvent.occupantName());
         Occupant occupant = occupantRepository.findBySessionId(roomLeaveEvent.sessionId().toString());
+
         if(occupant != null){
             try {
                 log.info("Attempting to deleted occupant: {}", occupant.getOccupantName());
                 occupantRepository.deleteByRoomCodeAndSessionId(occupant.getRoomCode(), occupant.getSessionId().toString());
                 log.info("Successfully deleted occupant: {}", occupant.getOccupantName());
+                return true;
             } catch (Exception e) {
                 log.info("An unexpected error occurred while trying to delete occupant: {}", occupant.getOccupantName(), e);
                 throw new OccupantDeletionException(String.format("An unexpected error occurred while trying to delete occupant: %s", occupant.getOccupantName()), e);
             }
         }
 
+        return false;
     }
 
+    /**
+     * Gets the count of all occupants in a room
+     * @param roomCode The room code of the room
+     * @return The count of all occupants in a room
+     * */
+    @Override
+    public int getOccupantCount(String roomCode){
+        return occupantRepository.findByRoomCode(roomCode)
+                 .size();
+    }
 
-    //Listens for room expiry events to delete occupants.
-    //This will occur when a room expires but occupant sessions are still active
+    /**
+     * A listener method which listens for room expiry events to expire occupants
+     * The listener listens for {@link RoomExpiryEvent}, then finds all the occupants in a room
+     * and sets their TTL(Time to live) to 2 seconds to allows redis expiration to handle expired values
+     *
+     * @param roomExpiryEvent The event containing metadata relating to room expiry
+     * */
     @RabbitListener(queues = "${room.expiry.queue-name}")
     public void handleRoomExpiry(RoomExpiryEvent roomExpiryEvent){
         String roomCode = roomExpiryEvent.roomCode();
         log.info("Handling room expiry for occupants for room with room code: {}", roomCode);
 
+
         try{
-            occupantRepository.deleteByRoomCode(roomExpiryEvent.roomCode());
-            log.info("Successfully deleted all occupants in room with room code: {}", roomCode);
+            List<Occupant> occupants = occupantRepository.findByRoomCode(roomExpiryEvent.roomCode());
+            log.debug("Found {} occupants for room expiry cleanup", occupants.size());
+
+
+            if (occupants.isEmpty()){
+                log.info("No occupants to process found. Returning...");
+                return;
+            }
+
+            log.info("DEBUG: Processing {} occupants", occupants.size());
+
+
+            occupants.parallelStream()
+                    .forEach(occupant -> redisTemplate.expire(occupant.getSessionId().toString(), Duration.ofSeconds(2)));
+
+            log.info("Successfully expired all occupants in room with room code: {}", roomCode);
         }catch (Exception e){
             log.error("Failed to delete expired occupants in room with room code: {}", roomCode, e);
         }
 
     }
 
-    //Listens for session expiry to delete occupants
+    /**
+     * A listener method that handles Redis key expiration events for occupants.
+     * When an occupant's key expires in Redis, this method is triggered to
+     * delete the corresponding occupant record from the repository.
+     *
+     * @param expiredEvent The event containing metadata about the expired occupant's key.
+     */
     @EventListener
     public void handleSessionExpiry(RedisKeyExpiredEvent<Occupant> expiredEvent){
         byte[] keyBytes = expiredEvent.getId();
-        String sessionId = new String(keyBytes, StandardCharsets.UTF_8);
 
-        if (sessionId.isEmpty()){
+        if (keyBytes.length == 0) {
+            log.warn("Received Redis expiry event with null or empty key");
             return;
         }
 
-        log.info("Session ID: {}", sessionId);
+        String sessionId = new String(keyBytes, StandardCharsets.UTF_8);
+
+        if (sessionId.isEmpty()){
+            log.warn("Received Redis expiry event with null or empty key");
+            return;
+        }
 
         try{
+            UUID.fromString(sessionId);
+        }catch (IllegalArgumentException e){
+            log.info("Invalid UUID: {}", sessionId);
+            return;
+        }
+
+        try {
             occupantRepository.deleteBySessionId(sessionId);
             log.info("Successfully deleted expired occupant with session ID: {}", sessionId);
-
         }catch (Exception e){
             log.error("Failed to delete expired occupant with session ID: {}", sessionId, e);
         }
-
 
     }
 }

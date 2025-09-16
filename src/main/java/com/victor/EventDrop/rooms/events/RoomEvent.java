@@ -11,12 +11,6 @@ public record RoomEvent(
         String notification,
         LocalDateTime occurredAt,
         RoomEventType roomEventType,
-        //The actual event payload
-        @JsonTypeInfo(
-                use = JsonTypeInfo.Id.CLASS,
-                include = JsonTypeInfo.As.PROPERTY,
-                property = "@class"
-        )
-        Object payload
+        String roomCode
 ) {
 }

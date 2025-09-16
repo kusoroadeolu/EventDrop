@@ -18,18 +18,18 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@RedisHash("fileId")
+@RedisHash("fileDrop")
 public class FileDrop {
     @Id
     @Indexed
     private UUID fileId;
     private String originalFileName;
     private String fileName;
+
+    @Indexed
     private String roomCode;
     private BigDecimal fileSizeInMB;
     private String blobUrl;
     private LocalDateTime uploadedAt;
     private boolean isDeleted;
-    @TimeToLive
-    private long ttlInSeconds;
 }

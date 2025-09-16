@@ -1,13 +1,13 @@
-package com.victor.EventDrop.rooms.listeners;
+package com.victor.EventDrop.rooms.config;
 
 
-import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
 import com.victor.EventDrop.occupants.OccupantService;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.SecureRandom;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,27 +37,6 @@ public class ListenerConfig {
     public ConcurrentHashMap<String, SimpleMessageListenerContainer> roomJoinListenersMap(){
         return new ConcurrentHashMap<>();
     }
-
-    /**
-     * Creates a thread-safe map to store listeners for file upload events.
-     *
-     * @return A ConcurrentHashMap to manage SimpleMessageListenerContainer beans.
-     */
-    @Bean("roomFileUploadListenersMap")
-    public ConcurrentHashMap<String, SimpleMessageListenerContainer> roomFileUploadListenersMap(){
-        return new ConcurrentHashMap<>();
-    }
-
-    /**
-     * Creates a thread-safe map to store listeners for file deletion events.
-     *
-     * @return A ConcurrentHashMap to manage SimpleMessageListenerContainer beans.
-     */
-    @Bean("roomFileDeleteListenersMap")
-    public ConcurrentHashMap<String, SimpleMessageListenerContainer> roomFileDeleteListenersMap(){
-        return new ConcurrentHashMap<>();
-    }
-
     /**
      * Creates a thread-safe map to store listeners for room leave events.
      *
@@ -82,32 +61,6 @@ public class ListenerConfig {
         return adapter;
     }
 
-    /**
-     * Adapts incoming messages to the "downloadFile" method of FileDropStorageClient.
-     *
-     * @param fileDropStorageClient The client to handle the message.
-     * @param messageConverter The converter to deserialize the message payload.
-     * @return A MessageListenerAdapter for file upload events.
-     */
-    @Bean(name = "roomFileUploadAdapter")
-    public MessageListenerAdapter roomFileUploadAdapter(FileDropStorageClient fileDropStorageClient, Jackson2JsonMessageConverter messageConverter){
-        MessageListenerAdapter adapter = new MessageListenerAdapter();
-        adapter.setMessageConverter(messageConverter);
-        return adapter;
-    }
-
-    /**
-     * Creates a listener adapter for file deletion events.
-     *
-     * @param messageConverter The converter to deserialize the message payload.
-     * @return A MessageListenerAdapter for file deletion events.
-     */
-    @Bean("roomFileDeleteAdapter")
-    public MessageListenerAdapter roomFileDeleteAdapter(Jackson2JsonMessageConverter messageConverter){
-        MessageListenerAdapter adapter = new MessageListenerAdapter();
-        adapter.setMessageConverter(messageConverter);
-        return adapter;
-    }
 
     /**
      * Creates a listener adapter for room leave events.
@@ -120,5 +73,10 @@ public class ListenerConfig {
         MessageListenerAdapter adapter = new MessageListenerAdapter(occupantService, "deleteOccupant");
         adapter.setMessageConverter(messageConverter);
         return adapter;
+    }
+
+    @Bean
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters(){
+        return new ConcurrentHashMap<>();
     }
 }

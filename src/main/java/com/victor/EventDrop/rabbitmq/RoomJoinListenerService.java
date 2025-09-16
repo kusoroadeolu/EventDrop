@@ -11,15 +11,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
-public class RoomJoinListenerServiceService extends AbstractQueueListenerService {
+public class RoomJoinListenerService extends AbstractQueueListenerService {
 
     private final MessageListenerAdapter roomJoinAdapter;
     private final ConcurrentHashMap<String, SimpleMessageListenerContainer> roomJoinListenersMap;
 
-    public RoomJoinListenerServiceService(CachingConnectionFactory connectionFactory,
-                                          @Qualifier("roomJoinAdapter")
+    public RoomJoinListenerService(CachingConnectionFactory connectionFactory,
+                                   @Qualifier("roomJoinAdapter")
                                           MessageListenerAdapter roomJoinAdapter,
-                                          @Qualifier("roomJoinListenersMap")
+                                   @Qualifier("roomJoinListenersMap")
                                           ConcurrentHashMap<String, SimpleMessageListenerContainer> roomJoinListenersMap) {
         super(connectionFactory);
         this.roomJoinAdapter = roomJoinAdapter;

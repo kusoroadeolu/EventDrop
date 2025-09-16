@@ -35,6 +35,7 @@ public class FileDropUtils {
             return fileDropRepository
                     .findByRoomCode(roomCode)
                     .stream()
+                    .filter(fileDrop -> !fileDrop.isDeleted())
                     .map(FileDrop::getFileSizeInMB)
                     .reduce(BigDecimal.ZERO, BigDecimal::add
                     );

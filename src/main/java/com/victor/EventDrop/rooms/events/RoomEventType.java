@@ -5,6 +5,5 @@ public enum RoomEventType {
     ROOM_LEAVE,
     ROOM_FILE_UPLOAD,
     ROOM_BATCH_FILE_UPLOAD,
-    ROOM_FILE_DELETE,
     ROOM_BATCH_FILE_DELETE
 }

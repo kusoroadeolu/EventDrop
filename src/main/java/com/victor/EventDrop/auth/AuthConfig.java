@@ -33,6 +33,7 @@ public class AuthConfig {
                 .authorizeHttpRequests(auth -> {
                         auth.requestMatchers("/rooms/join").permitAll();
                         auth.requestMatchers("/rooms/create").permitAll();
+                        auth.requestMatchers(HttpMethod.GET, "/rooms").permitAll();
                         auth.anyRequest().authenticated();
                 }
                 )

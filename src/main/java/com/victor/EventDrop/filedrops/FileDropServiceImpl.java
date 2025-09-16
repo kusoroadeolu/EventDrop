@@ -4,12 +4,15 @@ import com.victor.EventDrop.exceptions.FileDropDownloadException;
 import com.victor.EventDrop.exceptions.FileDropUploadException;
 import com.victor.EventDrop.exceptions.NoSuchFileDropException;
 import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
+import com.victor.EventDrop.filedrops.dtos.BatchDeleteResult;
+import com.victor.EventDrop.filedrops.dtos.BatchUploadResult;
+import com.victor.EventDrop.filedrops.dtos.FileDownloadResponseDto;
+import com.victor.EventDrop.filedrops.dtos.FileDropResponseDto;
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.AsyncTaskExecutor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,12 +45,11 @@ public class FileDropServiceImpl implements FileDropService {
      * Uses async operations internally but blocks until completion to maintain security context.
      *
      * @param roomCode the room's unique code.
-     * @param expiresAt when the file should expire
      * @param file the file to upload.
      * @return a {@link FileDropResponseDto} for the completed upload operation.
      */
     @Override
-    public FileDropResponseDto uploadFile(String roomCode, LocalDateTime expiresAt, MultipartFile file) {
+    public FileDropResponseDto uploadFile(String roomCode, MultipartFile file) {
         try{
             String fileDropName = roomCode + "/" + file.getOriginalFilename();
             BigDecimal fileSizeInMb = BigDecimal
@@ -76,8 +77,8 @@ public class FileDropServiceImpl implements FileDropService {
                                     .fileSizeInMB(fileSizeInMb)
                                     .roomCode(roomCode)
                                     .blobUrl(blobUrl)
+                                    .isDeleted(false)
                                     .uploadedAt(LocalDateTime.now())
-                                    .ttlInSeconds(Duration.between(LocalDateTime.now(), expiresAt).getSeconds())
                                     .build();
 
                             FileDrop saved = fileDropRepository.save(fileDrop);
@@ -99,7 +100,7 @@ public class FileDropServiceImpl implements FileDropService {
      * @return a CompletableFuture with a list of successfully uploaded file DTOs.
      */
     @Override
-    public BatchUploadResult uploadFiles(String roomCode, LocalDateTime expiresAt, List<MultipartFile> files){
+    public BatchUploadResult uploadFiles(String roomCode, List<MultipartFile> files){
 
         log.info("Starting batch file upload. Upload count: {}", files.size());
         List<FileDropResponseDto> successfulUploads = new CopyOnWriteArrayList<>();
@@ -108,12 +109,12 @@ public class FileDropServiceImpl implements FileDropService {
         var uploadFutures = files.stream()
                 .map(file -> CompletableFuture.supplyAsync(() ->
                         uploadFile(
-                                roomCode, expiresAt, file
+                                roomCode, file
                         ), asyncTaskExecutor)
                         .thenAccept(successfulUploads::add)
                         .exceptionally(throwable -> {
                             log.error("Failed to upload file: {}", file.getOriginalFilename(), throwable);
-                            failedUploads.add(new FileDropResponseDto(null, file.getOriginalFilename(), LocalDateTime.now()));
+                            failedUploads.add(new FileDropResponseDto(null, file.getOriginalFilename(), null ,LocalDateTime.now()));
                             return null;
                         }
                 )).toList();
@@ -179,12 +180,12 @@ public class FileDropServiceImpl implements FileDropService {
     /**
      * Asynchronously deletes a batch of files
      *
-     * @param roomId    the room id the files belong to
+     * @param roomCode    the room id the files belong to
      * @param fileIds list of file ids to delete
      * @return a CompletableFuture containing a batch result dto of deleted files
      */
     @Override
-    public BatchDeleteResult deleteFiles(String roomId, List<UUID> fileIds) {
+    public BatchDeleteResult deleteFiles(String roomCode, List<UUID> fileIds) {
 
         if(fileIds == null){
             log.info("File IDs cannot be null");
@@ -210,7 +211,7 @@ public class FileDropServiceImpl implements FileDropService {
 
         return CompletableFuture.supplyAsync(() -> {
                     try {
-                        log.info("Attempting batch delete of {} files for room {}", blobNames.size(), roomId);
+                        log.info("Attempting batch delete of {} files for room {}", blobNames.size(), roomCode);
                         fileDropStorageClient.deleteFiles(blobNames);
 
                         // Remove metadata from DB
@@ -218,7 +219,7 @@ public class FileDropServiceImpl implements FileDropService {
                         deletedNow.addAll(blobNames);
 
                     } catch (Exception e) {
-                        log.error("Batch delete failed for room {}: {}", roomId, e.getMessage(), e);
+                        log.error("Batch delete failed for room {}: {}", roomCode, e.getMessage(), e);
 
                         fileDrops.forEach(fileDrop -> CompletableFuture.runAsync(() -> {
                             try {
@@ -236,7 +237,16 @@ public class FileDropServiceImpl implements FileDropService {
                 .join();
     }
 
-    @Async
+    @Override
+    public List<FileDropResponseDto> getFileDrops(String roomCode){
+        return fileDropRepository
+                .findByRoomCode(roomCode)
+                .stream()
+                .filter(fileDrop -> !fileDrop.isDeleted())
+                .map(fileDropMapper::toResponseDto)
+                .toList();
+    }
+
     @Override
     public void publishRoomEvent(RoomEvent roomEvent){
         applicationEventPublisher.publishEvent(roomEvent);

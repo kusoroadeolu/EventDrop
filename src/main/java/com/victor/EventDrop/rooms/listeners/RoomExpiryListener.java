@@ -1,9 +1,6 @@
 package com.victor.EventDrop.rooms.listeners;
 
-import com.victor.EventDrop.rooms.Room;
-import com.victor.EventDrop.rooms.RoomQueueDeclarationService;
-import com.victor.EventDrop.rooms.RoomRepository;
-import com.victor.EventDrop.rooms.RoomService;
+import com.victor.EventDrop.rooms.*;
 import com.victor.EventDrop.rooms.configproperties.RoomExpiryConfigProperties;
 import com.victor.EventDrop.rooms.events.RoomExpiryEvent;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +12,7 @@ import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 /**
  * Listens for Redis key expiration events to handle room cleanup.
@@ -29,6 +27,7 @@ public class RoomExpiryListener {
     private final RabbitTemplate rabbitTemplate;
     private final RoomQueueDeclarationService roomQueueDeclarationService;
     private final RoomExpiryConfigProperties roomExpiryConfigProperties;
+    private final RoomEmitterHandler roomEmitterHandler;
 
     /**
      * Handles the expiration of a room key in Redis.
@@ -41,11 +40,21 @@ public class RoomExpiryListener {
         String roomCode = new String(expiredEventId, StandardCharsets.UTF_8);
 
         log.info("Handling expired room: {}", roomCode);
+        UUID uuid;
+
+        //Since room codes are strings and not UUIDs, if this throws an ex, return
+        try{
+            uuid = UUID.fromString(roomCode);
+            return;
+        }catch (IllegalArgumentException e){
+            log.info("Invalid UUID: {}", roomCode);
+        }
 
         try{
             roomService.deleteByRoomCode(roomCode);
             roomQueueListenerService.stopAllListeners(roomCode);
             roomQueueDeclarationService.deleteAllQueues(roomCode);
+            roomEmitterHandler.removeRoomEmitters(roomCode);
 
             // Publishes a message to RabbitMQ to notify other services of the room's expiration.
             rabbitTemplate.convertAndSend(

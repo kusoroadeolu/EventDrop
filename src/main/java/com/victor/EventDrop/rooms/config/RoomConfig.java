@@ -1,4 +1,4 @@
-package com.victor.EventDrop.rooms;
+package com.victor.EventDrop.rooms.config;
 
 import com.victor.EventDrop.rooms.configproperties.*;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +16,7 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class RoomConfig {
     private final RoomJoinConfigProperties roomJoinConfigProperties;
-    private final RoomFileUploadConfigProperties roomFileUploadConfigProperties;
     private final RoomExpiryConfigProperties roomExpiryConfigProperties;
-    private final RoomFileDeleteConfigProperties roomFileDeleteConfigProperties;
     private final RoomLeaveConfigProperties roomLeaveConfigProperties;
 
     /**
@@ -29,26 +27,6 @@ public class RoomConfig {
     @Bean
     public DirectExchange roomJoinExchange(){
         return new DirectExchange(roomJoinConfigProperties.getExchangeName(), true, true);
-    }
-
-    /**
-     * Creates a durable exchange for file upload events.
-     *
-     * @return A DirectExchange for file upload events.
-     */
-    @Bean
-    public DirectExchange roomFileUploadExchange(){
-        return new DirectExchange(roomFileUploadConfigProperties.getExchangeName(), true, false);
-    }
-
-    /**
-     * Creates a durable exchange for file deletion events.
-     *
-     * @return A DirectExchange for file deletion events.
-     */
-    @Bean
-    public DirectExchange roomFileDeleteExchange(){
-        return new DirectExchange(roomFileDeleteConfigProperties.getExchangeName(), true, false);
     }
 
     /**

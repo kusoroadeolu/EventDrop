@@ -1,4 +1,4 @@
-package com.victor.EventDrop.filedrops;
+package com.victor.EventDrop.filedrops.dtos;
 
 import java.util.List;
 
