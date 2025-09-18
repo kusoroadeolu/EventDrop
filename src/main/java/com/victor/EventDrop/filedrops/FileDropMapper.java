@@ -10,7 +10,7 @@ public class FileDropMapper {
           return new FileDropResponseDto(
                   fileDrop.getFileId().toString(),
                   fileDrop.getOriginalFileName(),
-                  fileDrop.getFileSizeInMB(),
+                  fileDrop.getFileSize(),
                   fileDrop.getUploadedAt()
           );
      }

@@ -14,6 +14,7 @@ import com.victor.EventDrop.rooms.events.RoomEventType;
 import com.victor.EventDrop.rooms.events.RoomJoinEvent;
 import com.victor.EventDrop.rooms.events.RoomLeaveEvent;
 import com.victor.EventDrop.rooms.listeners.RoomQueueListenerService;
+import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -73,7 +74,7 @@ public class RoomServiceImpl implements RoomService {
         if(roomCreateRequestDto.ttl() > maxTtlInMins){
             log.info("Cannot create room with room-code {} because its max TTL was exceeded.", roomCode);
             throw new RoomTtlExceededException(
-                    String.format("Room TTL of %d minutes exceeded the maximum of %d minutes.", roomCreateRequestDto.ttl(), maxTtlInMins)
+                    String.format("Room TTL of %d minutes exceeded the maximum of %d minutes.", (long)roomCreateRequestDto.ttl(), maxTtlInMins)
             );
         }
 
@@ -93,6 +94,17 @@ public class RoomServiceImpl implements RoomService {
 
             roomRepository.save(room);
             roomQueueListenerService.startListeners(roomCode);
+
+            eventPublisher.publishEvent(
+                    new RoomEvent(
+                            roomCreateRequestDto.username() + " created the room",
+                            LocalDateTime.now(),
+                            RoomEventType.ROOM_CREATE,
+                            roomCode,
+                            null
+                    )
+            );
+
             log.info("Successfully created room: {} with room code: {}", room.getRoomName(), room.getRoomCode());
             return joinRoom(new RoomJoinRequestDto(roomCreateRequestDto.username(), OccupantRole.OWNER ,roomCode));
 
@@ -135,7 +147,8 @@ public class RoomServiceImpl implements RoomService {
                         occupantName + " joined the room",
                         LocalDateTime.now(),
                         RoomEventType.ROOM_JOIN,
-                        roomCode
+                        roomCode,
+                        null
                 )
         );
 
@@ -168,7 +181,8 @@ public class RoomServiceImpl implements RoomService {
                         occupant.getOccupantName() + " left the room",
                         LocalDateTime.now(),
                         RoomEventType.ROOM_LEAVE,
-                        roomCode
+                        roomCode,
+                        null
                 )
         );
     }

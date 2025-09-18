@@ -1,29 +1,28 @@
 package com.victor.EventDrop.filedrops.client;
 
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.batch.BlobBatch;
 import com.azure.storage.blob.batch.BlobBatchClient;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.victor.EventDrop.exceptions.AzureException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class AzureStorageClient implements FileDropStorageClient {
     private final BlobContainerClient blobContainerClient;
-    private final BlobServiceSasSignatureValues blobServiceSasSignatureValues;
     private final AsyncTaskExecutor  asyncTaskExecutor;
     private final BlobBatchClient blobBatchClient;
 
@@ -57,6 +56,11 @@ public class AzureStorageClient implements FileDropStorageClient {
 
     }
 
+    @Override
+    public String downloadFile(String fileDropUrl) {
+        return "";
+    }
+
 
     /**
      * Generates a secure, pre-signed download URL for a file.
@@ -65,10 +69,16 @@ public class AzureStorageClient implements FileDropStorageClient {
      * @return a secure download URL.
      */
     @Override
-    public String downloadFile(String fileDropUrl){
+    public String downloadFile(String blobName, String fileDropUrl){
         try{
-            log.info("Attempting to download file from url: {}", fileDropUrl);
-            String sasToken = blobContainerClient.generateSas(blobServiceSasSignatureValues);
+            BlobClient client = blobContainerClient.getBlobClient(blobName);
+
+            BlobServiceSasSignatureValues sasValues = new BlobServiceSasSignatureValues(
+                    OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(5), // expiry time
+                    new BlobSasPermission().setReadPermission(true)
+            ).setStartTime(OffsetDateTime.now(ZoneOffset.UTC));
+
+            String sasToken = client.generateSas(sasValues);
             log.info("Successfully generated sas token: {}", sasToken);
             String preSignedUrl = fileDropUrl + "?" + sasToken;
             log.info("Successfully generated pre-signed url for download: {}", preSignedUrl);

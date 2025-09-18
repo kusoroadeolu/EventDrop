@@ -11,5 +11,7 @@ public interface FileDropStorageClient {
 
     String downloadFile(String fileDropUrl);
 
+    String downloadFile(String blobName, String fileDropUrl);
+
     void deleteFiles(List<String> fileNames);
 }

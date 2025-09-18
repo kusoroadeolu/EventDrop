@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Configuration
 @RequiredArgsConstructor
@@ -60,7 +61,7 @@ public class AzureBlobConfig {
 
     @Bean
     public OffsetDateTime expiryTime(){
-        return OffsetDateTime.now().plusMinutes(5);
+        return OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(5);
     }
 
     @Bean
@@ -69,10 +70,6 @@ public class AzureBlobConfig {
                 .buildClient();
     }
 
-    @Bean
-    public BlobServiceSasSignatureValues blobServiceSasSignatureValues(BlobSasPermission blobSasPermission, OffsetDateTime expiryTime){
-        return new BlobServiceSasSignatureValues(expiryTime, blobSasPermission).setStartTime(OffsetDateTime.now());
-    }
 
 
 }

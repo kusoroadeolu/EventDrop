@@ -12,6 +12,7 @@ import jakarta.servlet.FilterChain;
 
 import jakarta.servlet.ServletException;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -55,22 +56,36 @@ public class SessionFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        String path = request.getRequestURI();
+        if ("/favicon.ico".equals(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if(authentication != null && authentication.isAuthenticated()){
             log.info("User is already authenticated");
             filterChain.doFilter(request, response);
             return;
-
         }
 
-        String authHeader = request.getHeader("Authorization");
+        String sessionId = null;
+        Cookie[] cookies = request.getCookies();
+        if(cookies != null){
+            for (Cookie cookie : request.getCookies()){
+                if(cookie != null && cookie.getName().equals("SESSION_ID")){
+                    sessionId = cookie.getValue();
+                    break;
+                }
+            }
+        }
 
-        if(authHeader == null || !authHeader.startsWith("Bearer ")){
-            log.info("No auth header found or invalid format. Denying request.");
+        if(sessionId == null || sessionId.isEmpty()){
+            log.info("No session ID found or invalid format. Denying request.");
+            SecurityContextHolder.clearContext();
             filterChain.doFilter(request, response);
             return;
         }
 
-        String sessionId = authHeader.substring(7);
         log.info("Attempting to authenticate user with session ID: {}", sessionId);
 
         Occupant occupant = occupantRepository.findBySessionId(sessionId);
@@ -86,8 +101,7 @@ public class SessionFilter extends OncePerRequestFilter {
             log.info("Successfully authenticated user and refreshed session ID.");
         }else{
             log.info("Occupant not found for the session ID");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

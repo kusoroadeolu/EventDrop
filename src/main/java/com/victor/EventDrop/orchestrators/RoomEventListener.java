@@ -1,6 +1,7 @@
 package com.victor.EventDrop.orchestrators;
 
 import com.victor.EventDrop.rooms.events.RoomEvent;
+import com.victor.EventDrop.rooms.events.RoomEventType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -30,6 +31,12 @@ public class RoomEventListener
      */
     @EventListener
     public void listen(RoomEvent roomEvent){
+
+        if(roomEvent.roomEventType() == RoomEventType.ROOM_CREATE
+                || roomEvent.roomEventType() == RoomEventType.ROOM_FILE_DOWNLOAD){
+            return;
+        }
+
         RoomStateDto roomStateDto =
                 roomStateBuilder.get(roomEvent.roomCode(), roomEvent.notification());
 
@@ -39,9 +46,9 @@ public class RoomEventListener
                 executorService.execute(() -> {
                     try {
                         emitter.send(roomStateDto);
-                        log.debug("Sent message to session {} in room {}", sessionId, roomEvent.roomCode());
+                        log.info("Sent message to session {} in room {}", sessionId, roomEvent.roomCode());
                     } catch (IOException e) {
-                        log.error("Failed to send to session {} in room {}: {}", sessionId, roomEvent.roomCode(), e.getMessage());
+                        log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomEvent.roomCode(), e.getMessage());
                         emitter.completeWithError(e);
                     }
                 });
@@ -49,5 +56,20 @@ public class RoomEventListener
         }else{
             log.info("No active sessions found for room: {}", roomEvent.roomCode());
         }
+    }
+
+    public void emitRoomStateOnLogin(SseEmitter emitter, String roomCode, String sessionId){
+        RoomStateDto roomStateDto =
+                roomStateBuilder.get(roomCode, null);
+
+        executorService.execute(() -> {
+            try{
+                emitter.send(roomStateDto);
+                log.info("Sent initial state to session {} in room {}", sessionId, roomCode);
+            }catch (IOException e){
+                log.error("Failed to send room state on login to session {} in room {}: {}", sessionId, roomCode, e.getMessage());
+                emitter.completeWithError(e);
+            }
+        });
     }
 }

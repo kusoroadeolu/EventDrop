@@ -269,12 +269,13 @@
     <div class="container">
         <div class="header-content">
             <a href="#" class="logo">
-                <i class="ri-bubble-chart-fill"></i>
+                <i class="ri-cloud-line"></i>
                 EventDrop
             </a>
         </div>
     </div>
 </header>
+
 
 <div class="main-content">
     <div class="container">
@@ -295,9 +296,9 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="room-ttl">Time to Live (minutes)</label>
-                            <input type="number" id="room-ttl" class="form-control" placeholder="Enter room duration" min="5" max="1440" required>
-                            <div class="error-message" id="room-ttl-error">Duration must be between 5 and 1440 minutes</div>
+                            <label for="room-ttl">Room Duration (minutes)</label>
+                            <input type="number" id="room-ttl" class="form-control" placeholder="Enter room duration" min="5" max="4320" required>
+                            <div class="error-message" id="room-ttl-error">Duration must be between 5 and 4320 minutes</div>
                         </div>
 
                         <div class="form-group">
@@ -321,7 +322,7 @@
 
                         <div class="form-group">
                             <label for="room-code">Room Code</label>
-                            <input type="text" id="room-code" class="form-control" placeholder="Enter 8-character room code" minlength="8" maxlength="8" required>
+                            <input type="text" id="room-code" class="form-control" placeholder="Enter 8-character room code" minlength="8" maxlength="9" required>
                             <div class="error-message" id="room-code-error">Room code must be exactly 8 characters</div>
                         </div>
 
@@ -338,7 +339,6 @@
         <p>© 2025 EventDrop</p>
     </div>
 </footer>
-
 <script>
     // Tab switching functionality
     document.getElementById('create-tab').addEventListener('click', function() {
@@ -355,98 +355,8 @@
         document.getElementById('create-pane').classList.remove('active');
     });
 
-    // Form validation for Create Room
-    const createRoomName = document.getElementById('create-room-name');
-    const roomTtl = document.getElementById('room-ttl');
-    const createUsername = document.getElementById('create-username');
-    const createSubmit = document.getElementById('create-submit');
-
-    function validateCreateForm() {
-        let isValid = true;
-
-        // Validate room name
-        if (createRoomName.value.length < 3 || createRoomName.value.length > 20) {
-            createRoomName.classList.add('invalid');
-            document.getElementById('create-room-name-error').classList.add('visible');
-            isValid = false;
-        } else {
-            createRoomName.classList.remove('invalid');
-            document.getElementById('create-room-name-error').classList.remove('visible');
-        }
-
-        // Validate TTL
-        if (roomTtl.value < 5 || roomTtl.value > 1440 || roomTtl.value === '') {
-            roomTtl.classList.add('invalid');
-            document.getElementById('room-ttl-error').classList.add('visible');
-            isValid = false;
-        } else {
-            roomTtl.classList.remove('invalid');
-            document.getElementById('room-ttl-error').classList.remove('visible');
-        }
-
-        // Validate username
-        if (createUsername.value.length < 3 || createUsername.value.length > 20) {
-            createUsername.classList.add('invalid');
-            document.getElementById('create-username-error').classList.add('visible');
-            isValid = false;
-        } else {
-            createUsername.classList.remove('invalid');
-            document.getElementById('create-username-error').classList.remove('visible');
-        }
-
-        createSubmit.disabled = !isValid;
-    }
-
-    createRoomName.addEventListener('input', validateCreateForm);
-    roomTtl.addEventListener('input', validateCreateForm);
-    createUsername.addEventListener('input', validateCreateForm);
-
-    // Form validation for Join Room
-    const joinUsername = document.getElementById('join-username');
-    const roomCode = document.getElementById('room-code');
-    const joinSubmit = document.getElementById('join-submit');
-
-    function validateJoinForm() {
-        let isValid = true;
-
-        // Validate username
-        if (joinUsername.value.length < 3 || joinUsername.value.length > 20) {
-            joinUsername.classList.add('invalid');
-            document.getElementById('join-username-error').classList.add('visible');
-            isValid = false;
-        } else {
-            joinUsername.classList.remove('invalid');
-            document.getElementById('join-username-error').classList.remove('visible');
-        }
-
-        // Validate room code
-        if (roomCode.value.length !== 8) {
-            roomCode.classList.add('invalid');
-            document.getElementById('room-code-error').classList.add('visible');
-            isValid = false;
-        } else {
-            roomCode.classList.remove('invalid');
-            document.getElementById('room-code-error').classList.remove('visible');
-        }
-
-        joinSubmit.disabled = !isValid;
-    }
-
-    joinUsername.addEventListener('input', validateJoinForm);
-    roomCode.addEventListener('input', validateJoinForm);
-
-    // Form submission
-    document.getElementById('create-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert('Creating room: ' + createRoomName.value);
-        // In a real application, you would submit the form data to the server here
-    });
-
-    document.getElementById('join-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert('Joining room with code: ' + roomCode.value);
-        // In a real application, you would submit the form data to the server here
-    });
 </script>
+<script src="create-room.js"></script>
+
 </body>
 </html>

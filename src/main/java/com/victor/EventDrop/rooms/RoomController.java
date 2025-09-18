@@ -2,10 +2,14 @@ package com.victor.EventDrop.rooms;
 
 import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
+import com.victor.EventDrop.orchestrators.RoomEventListener;
 import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinResponseDto;
 import com.victor.EventDrop.rooms.dtos.RoomResponseDto;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RoomController {
 
     private final RoomService roomService;
+    private final RoomEventListener roomEventListener;
     private final RoomEmitterHandler roomEmitterHandler;
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters;
 
@@ -38,9 +43,17 @@ public class RoomController {
     }
 
     @PostMapping("/join")
-    public ResponseEntity<RoomJoinResponseDto> joinRoom(@Valid @RequestBody RoomJoinRequestDto roomJoinRequestDto){
+    public ResponseEntity<RoomJoinResponseDto> joinRoom(@Valid @RequestBody RoomJoinRequestDto roomJoinRequestDto, HttpServletResponse response){
         roomJoinRequestDto.setRole(OccupantRole.OCCUPANT);
         RoomJoinResponseDto responseDto = roomService.joinRoom(roomJoinRequestDto);
+
+        Cookie cookie = new Cookie("SESSIONID", responseDto.sessionId());
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(30 * 60);
+        response.addCookie(cookie);
+
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
@@ -54,13 +67,15 @@ public class RoomController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('OCCUPANT', 'OWNER')")
-    public ResponseEntity<SseEmitter> streamRoomState(@AuthenticationPrincipal Occupant occupant){
+    public SseEmitter streamRoomState(@AuthenticationPrincipal Occupant occupant){
         String roomCode = occupant.getRoomCode();
         String sessionId = occupant.getSessionId().toString();
 
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
 
-        sseEmitters.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(sessionId, emitter);
+        sseEmitters.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>())
+                .put(sessionId, emitter);
+
 
         emitter.onCompletion(() -> roomEmitterHandler.removeEmitter(roomCode, sessionId));
         emitter.onTimeout(() -> roomEmitterHandler.removeEmitter(roomCode, sessionId));
@@ -69,8 +84,9 @@ public class RoomController {
             roomEmitterHandler.removeEmitter(roomCode, sessionId);
         });
 
+        roomEventListener.emitRoomStateOnLogin(emitter, roomCode, sessionId);
 
-        return new ResponseEntity<>(emitter, HttpStatus.OK);
+        return emitter;
     }
 
     @DeleteMapping("/delete")

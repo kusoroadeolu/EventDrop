@@ -367,50 +367,6 @@
         <p class="footer-text">© 2025 EventDrop</p>
     </div>
 </footer>
-
-<script>
-    // Counter Animation
-    function animateCounters() {
-        const counters = document.querySelectorAll('.stat-number');
-
-        const options = {
-            threshold: 0.5
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const counter = entry.target;
-                    const countTo = parseInt(counter.getAttribute('data-count'));
-                    const span = counter.querySelector('span');
-                    let count = 0;
-
-                    counter.classList.add('animated');
-
-                    const updateCount = () => {
-                        const increment = countTo / 50;
-                        if (count < countTo) {
-                            count += increment;
-                            span.textContent = Math.ceil(count).toLocaleString();
-                            setTimeout(updateCount, 30);
-                        } else {
-                            span.textContent = countTo.toLocaleString();
-                        }
-                    };
-
-                    updateCount();
-                    observer.unobserve(counter);
-                }
-            });
-        }, options);
-
-        counters.forEach(counter => {
-            observer.observe(counter);
-        });
-    }
-
-    // Run animation when page loads
-    document.addEventListener('DOMContentLoaded', animateCounters);
-</script>
+<script src="landing-page.js"></script>
 </body>
 </html>

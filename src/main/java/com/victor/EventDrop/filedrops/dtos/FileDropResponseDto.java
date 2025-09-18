@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 public record FileDropResponseDto(
         String fileId,
         String fileName,
-        BigDecimal fileSizeInMB,
+        long fileSizeInBytes,
         LocalDateTime uploadedAt
 ) {
 }

@@ -28,7 +28,7 @@ public class FileDrop {
 
     @Indexed
     private String roomCode;
-    private BigDecimal fileSizeInMB;
+    private long fileSize;
     private String blobUrl;
     private LocalDateTime uploadedAt;
     private boolean isDeleted;

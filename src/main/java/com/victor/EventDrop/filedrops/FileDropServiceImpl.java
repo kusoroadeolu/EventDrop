@@ -52,12 +52,10 @@ public class FileDropServiceImpl implements FileDropService {
     public FileDropResponseDto uploadFile(String roomCode, MultipartFile file) {
         try{
             String fileDropName = roomCode + "/" + file.getOriginalFilename();
-            BigDecimal fileSizeInMb = BigDecimal
-                    .valueOf(file.getSize())
-                    .divide(new BigDecimal(1024 * 1024), 2, RoundingMode.HALF_UP);
             InputStream stream = file.getInputStream();
+            long fileSize = file.getSize();
 
-            return fileDropUtils.validateFileUpload(file, roomCode, fileSizeInMb)
+            return fileDropUtils.validateFileUpload(file, roomCode, fileSize)
                     .thenComposeAsync(i -> {
                         try {
                             return fileDropStorageClient.uploadFile(fileDropName, file.getSize() , stream);
@@ -74,7 +72,7 @@ public class FileDropServiceImpl implements FileDropService {
                                     .fileId(fileDropId)
                                     .originalFileName(file.getOriginalFilename())
                                     .fileName(fileDropName)
-                                    .fileSizeInMB(fileSizeInMb)
+                                    .fileSize(fileSize)
                                     .roomCode(roomCode)
                                     .blobUrl(blobUrl)
                                     .isDeleted(false)
@@ -102,6 +100,11 @@ public class FileDropServiceImpl implements FileDropService {
     @Override
     public BatchUploadResult uploadFiles(String roomCode, List<MultipartFile> files){
 
+        if(files.size() > 20){
+            log.info("Cannot upload more than 20 files at once.");
+            throw new FileDropUploadException("Cannot upload more than 20 files at once");
+        }
+
         log.info("Starting batch file upload. Upload count: {}", files.size());
         List<FileDropResponseDto> successfulUploads = new CopyOnWriteArrayList<>();
         List<FileDropResponseDto> failedUploads = new CopyOnWriteArrayList<>();
@@ -114,7 +117,7 @@ public class FileDropServiceImpl implements FileDropService {
                         .thenAccept(successfulUploads::add)
                         .exceptionally(throwable -> {
                             log.error("Failed to upload file: {}", file.getOriginalFilename(), throwable);
-                            failedUploads.add(new FileDropResponseDto(null, file.getOriginalFilename(), null ,LocalDateTime.now()));
+                            failedUploads.add(new FileDropResponseDto(null, file.getOriginalFilename(), file.getSize() ,LocalDateTime.now()));
                             return null;
                         }
                 )).toList();
@@ -155,8 +158,9 @@ public class FileDropServiceImpl implements FileDropService {
                     }
 
                     String fileDropUrl = fileDrop.getBlobUrl();
+                    String blobName = fileDrop.getFileName();
 
-                    return fileDropStorageClient.downloadFile(fileDropUrl);
+                    return fileDropStorageClient.downloadFile(blobName, fileDropUrl);
 
                 }, asyncTaskExecutor)
                 .exceptionally(throwable -> {

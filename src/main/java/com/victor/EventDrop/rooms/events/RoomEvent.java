@@ -11,6 +11,8 @@ public record RoomEvent(
         String notification,
         LocalDateTime occurredAt,
         RoomEventType roomEventType,
-        String roomCode
+        String roomCode,
+        //Just to track the count of files uploaded for file uploads
+        Integer count
 ) {
 }

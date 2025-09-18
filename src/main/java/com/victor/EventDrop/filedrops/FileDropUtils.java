@@ -22,22 +22,22 @@ public class FileDropUtils {
     private final FileDropRepository fileDropRepository;
 
     @Value("${room.file-threshold}")
-    private int thresholdInMb;
+    private long threshold;
 
     /**
      * Calculates the total size of all files in a specific room.
      *
      * @param roomCode the room's unique code.
-     * @return the total file size in MB.
+     * @return the total file size in bytes.
      */
-    private CompletableFuture<BigDecimal> calculateRoomFileSize(String roomCode){
+    private CompletableFuture<Long> calculateRoomFileSize(String roomCode){
         return CompletableFuture.supplyAsync(() -> {
             return fileDropRepository
                     .findByRoomCode(roomCode)
                     .stream()
                     .filter(fileDrop -> !fileDrop.isDeleted())
-                    .map(FileDrop::getFileSizeInMB)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add
+                    .map(FileDrop::getFileSize)
+                    .reduce(0L, Long::sum
                     );
         }, asyncTaskExecutor);
     }
@@ -49,7 +49,7 @@ public class FileDropUtils {
      * @param roomCode the room code
      * @throws IOException if file cannot be read
      */
-    CompletableFuture<Void> validateFileUpload(MultipartFile file, String roomCode, BigDecimal fileSizeInMb) throws IOException {
+    CompletableFuture<Void> validateFileUpload(MultipartFile file, String roomCode, long fileSize) throws IOException {
 
         if (file == null || file.isEmpty()) {
             throw new FileDropUploadException("File cannot be null or empty");
@@ -59,26 +59,23 @@ public class FileDropUtils {
             throw new FileDropUploadException("File must have a valid filename");
         }
 
-        return validateRoomFileThreshold(roomCode, fileSizeInMb);
+        return validateRoomFileThreshold(roomCode, fileSize);
     }
 
     /**
      * Checks if a new file will exceed the room's size threshold before uploading.
      *
      * @param roomCode     the room's unique code.
-     * @param fileSizeInMb the size of the new file.
+     * @param fileSize the size of the new file.
      */
-    private CompletableFuture<Void> validateRoomFileThreshold(String roomCode, BigDecimal fileSizeInMb){
-        return calculateRoomFileSize(roomCode).thenApplyAsync(roomSize -> {
-            BigDecimal expectedRoomSize = roomSize.add(fileSizeInMb);
-            BigDecimal maxThreshold = new BigDecimal(thresholdInMb);
-
-            if (expectedRoomSize.compareTo(maxThreshold) > 0){
+    private CompletableFuture<Void> validateRoomFileThreshold(String roomCode, long fileSize){
+        return calculateRoomFileSize(roomCode).thenAcceptAsync(roomSize -> {
+            long expectedRoomSize = roomSize + fileSize;
+            if (expectedRoomSize > threshold){
                 log.info("Cannot upload this file because it will exceed this room file size threshold");
                 throw new FileDropThresholdExceededException("Cannot upload this file because it will exceed this room file size threshold");
             }
 
-            return null;
         }, asyncTaskExecutor);
     }
 }

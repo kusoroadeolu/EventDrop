@@ -31,9 +31,14 @@ public class AuthConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
+                        auth.requestMatchers("/").permitAll();
+                        auth.requestMatchers("/landing-page.html").permitAll();
+                        auth.requestMatchers("/landing-page.js").permitAll();
+                        auth.requestMatchers("/create-room.js").permitAll();
+                        auth.requestMatchers("/create.html").permitAll();
+                        auth.requestMatchers(HttpMethod.GET, "/metrics").permitAll();
                         auth.requestMatchers("/rooms/join").permitAll();
                         auth.requestMatchers("/rooms/create").permitAll();
-                        auth.requestMatchers(HttpMethod.GET, "/rooms").permitAll();
                         auth.anyRequest().authenticated();
                 }
                 )
@@ -45,5 +50,6 @@ public class AuthConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+
 
 }

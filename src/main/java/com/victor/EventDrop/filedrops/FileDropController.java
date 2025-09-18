@@ -36,7 +36,8 @@ public class FileDropController {
                 occupant.getOccupantName() + " uploaded a file",
                 LocalDateTime.now(),
                 RoomEventType.ROOM_FILE_UPLOAD,
-                occupant.getRoomCode()
+                occupant.getRoomCode(),
+                1
         ));
         return new ResponseEntity<>(fileDropResponseDto, HttpStatus.CREATED);
     }
@@ -44,20 +45,29 @@ public class FileDropController {
     @PostMapping("/batch")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<BatchUploadResult> uploadFiles(@AuthenticationPrincipal Occupant occupant, @RequestParam("file") List<MultipartFile> files) {
-        var fileDropResponseDto = fileDropService.uploadFiles(occupant.getRoomCode(), files);
+        var batchUploadResult = fileDropService.uploadFiles(occupant.getRoomCode(), files);
         fileDropService.publishRoomEvent(new RoomEvent(
                 occupant.getOccupantName() + " uploaded a file",
                 LocalDateTime.now(),
                 RoomEventType.ROOM_BATCH_FILE_UPLOAD,
-                occupant.getRoomCode()
+                occupant.getRoomCode(),
+                batchUploadResult.successfulUploads().size()
+
         ));
-        return new ResponseEntity<>(fileDropResponseDto, HttpStatus.CREATED);
+        return new ResponseEntity<>(batchUploadResult, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('OCCUPANT', 'OWNER')")
     public ResponseEntity<FileDownloadResponseDto> downloadFile(@AuthenticationPrincipal Occupant occupant, @PathVariable("id") String fileId) {
         FileDownloadResponseDto downloadUrl = fileDropService.downloadFile(UUID.fromString(fileId), occupant.getRoomCode());
+        fileDropService.publishRoomEvent(new RoomEvent(
+                null,
+                LocalDateTime.now(),
+                RoomEventType.ROOM_FILE_DOWNLOAD,
+                occupant.getRoomCode(),
+                1
+        ));
         return ResponseEntity.status(302).body(downloadUrl);
     }
 
@@ -71,7 +81,8 @@ public class FileDropController {
                 notification,
                 LocalDateTime.now(),
                 RoomEventType.ROOM_BATCH_FILE_DELETE,
-                occupant.getRoomCode()
+                occupant.getRoomCode(),
+                null
         ));
         return new ResponseEntity<>(batchDto, HttpStatus.NO_CONTENT);
     }
