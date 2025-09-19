@@ -1,11 +1,15 @@
 package com.victor.EventDrop.filedrops;
 
+import com.azure.core.exception.AzureException;
+import com.azure.storage.blob.batch.BlobBatchStorageException;
 import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
 import com.victor.EventDrop.rooms.RoomServiceImpl;
 import com.victor.EventDrop.rooms.events.RoomExpiryEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -40,21 +44,30 @@ public class FileDropEventListener {
     @RabbitListener(queues = "${room.expiry.queue-name}")
     public void handleRoomExpiry(RoomExpiryEvent roomExpiryEvent){
         String roomCode = roomExpiryEvent.roomCode();
-        List<FileDrop> fileDrops = fileDropRepository.findByRoomCode(roomCode);
+        try{
+            List<FileDrop> fileDrops = fileDropRepository.findByRoomCode(roomCode);
 
-        if(fileDrops.isEmpty())return;
+            if(fileDrops.isEmpty())return;
 
 
-        log.info("Handling room expiry for file drops for room with room code: {}", roomCode);
-        fileDrops
-                .parallelStream()
-                .forEach(fileDrop -> {
-                    redisTemplate.expire(fileDrop.getFileId().toString(), Duration.ofSeconds(2));
-                });
+            log.info("Handling room expiry for file drops for room with room code: {}", roomCode);
+            fileDrops
+                    .parallelStream()
+                    .forEach(fileDrop -> {
+                        redisTemplate.expire(fileDrop.getFileId().toString(), Duration.ofSeconds(2));
+                    });
 
-        List<String> fileNames = fileDrops.stream()
-                .map(FileDrop::getFileName).toList();
-        fileDropStorageClient.deleteFiles(fileNames);
+            List<String> fileNames = fileDrops.stream()
+                    .map(FileDrop::getFileName).toList();
+            fileDropStorageClient.deleteFiles(fileNames);
+
+        }catch (ListenerExecutionFailedException e){
+            log.error("Listener execution failed while trying to delete file drops in room with code: {}", roomCode, e);
+            throw e;
+        }catch (Exception e){
+            log.error("Failed to delete expired file drops in room with room code: {}", roomCode, e);
+            throw new AmqpRejectAndDontRequeueException(String.format("Failed to delete expired file drops in room with room code: %s", roomCode), e);
+        }
     }
 
 

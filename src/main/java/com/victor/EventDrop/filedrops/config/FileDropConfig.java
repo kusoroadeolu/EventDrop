@@ -3,6 +3,7 @@ package com.victor.EventDrop.filedrops.config;
 import org.springframework.boot.web.embedded.tomcat.TomcatProtocolHandlerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.core.task.TaskExecutor;
@@ -25,6 +26,7 @@ public class FileDropConfig {
     }
 
     @Bean
+    @Primary
     public AsyncTaskExecutor asyncTaskExecutor(ExecutorService virtualExecutorService){
         return new DelegatingSecurityContextAsyncTaskExecutor(new TaskExecutorAdapter(virtualExecutorService));
     }

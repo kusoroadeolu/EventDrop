@@ -1,7 +1,5 @@
 package com.victor.EventDrop.rooms.listeners;
 
-import com.victor.EventDrop.rabbitmq.RoomJoinListenerService;
-import com.victor.EventDrop.rabbitmq.RoomLeaveListenerService;
 import com.victor.EventDrop.rooms.RoomQueueDeclarationServiceImpl;
 import com.victor.EventDrop.rooms.configproperties.RoomJoinConfigProperties;
 import com.victor.EventDrop.rooms.configproperties.RoomLeaveConfigProperties;

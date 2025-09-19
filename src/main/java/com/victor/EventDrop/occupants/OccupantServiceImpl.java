@@ -1,13 +1,14 @@
 package com.victor.EventDrop.occupants;
 
-import com.victor.EventDrop.exceptions.OccupantCreationException;
 import com.victor.EventDrop.exceptions.OccupantDeletionException;
-import com.victor.EventDrop.rooms.events.RoomExpiryEvent;
-import com.victor.EventDrop.rooms.events.RoomJoinEvent;
-import com.victor.EventDrop.rooms.events.RoomLeaveEvent;
+import com.victor.EventDrop.rooms.events.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -26,34 +27,45 @@ public class OccupantServiceImpl implements OccupantService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OccupantRepository occupantRepository;
 
-    //Listens for room join events to create occupants
+    @Value("${room.max-size}")
+    private Integer maxRoomSize;
+
     /**
      * A listener method which listens for {@link RoomJoinEvent} events to create occupants for the room
      * @param roomJoinEvent The event containing metadata relating to room joins
-     * @return The saved occupant's username
      * */
     @Override
-    public String createOccupant(RoomJoinEvent roomJoinEvent){
+    public OccupantRoomJoinResponse createOccupant(RoomJoinEvent roomJoinEvent){
         log.info("Initiating room occupant creation for room: {}", roomJoinEvent.roomCode());
+
+        List<Occupant> occupants = occupantRepository.findByRoomCode(roomJoinEvent.roomCode());
+        int size = occupants.size();
+
+        if(size >= maxRoomSize){
+            log.info("Join request failed because room is already full");
+            return new OccupantRoomJoinResponse(false, 409);
+        }
+
         Occupant occupant = Occupant
                 .builder()
                 .occupantName(roomJoinEvent.username())
                 .roomCode(roomJoinEvent.roomCode())
                 .occupantRole(roomJoinEvent.role())
                 .sessionId(roomJoinEvent.sessionId())
-                .roomExpiry(roomJoinEvent.roomExpiry())
                 .build();
 
 
         try {
             log.info("Attempting to save occupant: {}", occupant.getOccupantName());
-            var saved = occupantRepository.save(occupant);
+            Occupant saved = occupantRepository.save(occupant);
             log.info("Successfully saved occupant: {}", occupant.getOccupantName());
-            return saved.getOccupantName();
+            return new OccupantRoomJoinResponse(true, 200);
+        } catch (ListenerExecutionFailedException e){
+            log.info("Execution of method listener failed  {}", occupant.getOccupantName(), e);
+            return new OccupantRoomJoinResponse(false, 500);
         }catch (Exception e){
             log.info("An unexpected error occurred while trying to save occupant: {}", occupant.getOccupantName(), e);
-            throw new OccupantCreationException(String.format("An unexpected error occurred while trying to save occupant: %s", occupant.getOccupantName()), e);
-        }
+            return new OccupantRoomJoinResponse(false, 500);        }
 
     }
 
@@ -62,7 +74,7 @@ public class OccupantServiceImpl implements OccupantService {
      * @param roomLeaveEvent The event containing metadata relating to room leave
      * */
     @Override
-    public Boolean deleteOccupant(RoomLeaveEvent roomLeaveEvent){
+    public void deleteOccupant(RoomLeaveEvent roomLeaveEvent){
         log.info("Initiating room occupant deletion for room: {}. Occupant name: {}", roomLeaveEvent.roomCode(), roomLeaveEvent.occupantName());
         Occupant occupant = occupantRepository.findBySessionId(roomLeaveEvent.sessionId().toString());
 
@@ -71,14 +83,12 @@ public class OccupantServiceImpl implements OccupantService {
                 log.info("Attempting to deleted occupant: {}", occupant.getOccupantName());
                 occupantRepository.deleteByRoomCodeAndSessionId(occupant.getRoomCode(), occupant.getSessionId().toString());
                 log.info("Successfully deleted occupant: {}", occupant.getOccupantName());
-                return true;
+
             } catch (Exception e) {
                 log.info("An unexpected error occurred while trying to delete occupant: {}", occupant.getOccupantName(), e);
                 throw new OccupantDeletionException(String.format("An unexpected error occurred while trying to delete occupant: %s", occupant.getOccupantName()), e);
             }
         }
-
-        return false;
     }
 
     /**
@@ -105,12 +115,12 @@ public class OccupantServiceImpl implements OccupantService {
         log.info("Handling room expiry for occupants for room with room code: {}", roomCode);
 
 
-        try{
+        try {
             List<Occupant> occupants = occupantRepository.findByRoomCode(roomExpiryEvent.roomCode());
             log.debug("Found {} occupants for room expiry cleanup", occupants.size());
 
 
-            if (occupants.isEmpty()){
+            if (occupants.isEmpty()) {
                 log.info("No occupants to process found. Returning...");
                 return;
             }
@@ -119,11 +129,16 @@ public class OccupantServiceImpl implements OccupantService {
 
 
             occupants.parallelStream()
-                    .forEach(occupant -> redisTemplate.expire(occupant.getSessionId().toString(), Duration.ofSeconds(2)));
+                    .forEach(
+                            occupant -> redisTemplate.expire(occupant.getSessionId().toString(), Duration.ofSeconds(2)));
 
             log.info("Successfully expired all occupants in room with room code: {}", roomCode);
+        }catch (ListenerExecutionFailedException e){
+            log.error("Listener execution failed while trying to delete occupants in room with code: {}", roomCode, e);
+            throw e;
         }catch (Exception e){
             log.error("Failed to delete expired occupants in room with room code: {}", roomCode, e);
+            throw new AmqpRejectAndDontRequeueException(String.format("Failed to delete expired occupants in room with room code: %s", roomCode), e);
         }
 
     }

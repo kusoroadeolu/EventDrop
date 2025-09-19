@@ -93,6 +93,17 @@ class EventDropRoomManager {
     handleSSEMessage(event) {
         try {
             const roomState = JSON.parse(event.data);
+
+            if (roomState.isExpired) {
+                // Room expired
+                this.showNotification('Room has expired. Redirecting...', 'error');
+                setTimeout(() => {
+                    this.cleanup();
+                    window.location.href = '/create.html';
+                }, 500);
+                return;
+            }
+
             console.log('Received room state update:', roomState);
 
             this.currentRoomState = roomState;
@@ -499,7 +510,7 @@ class EventDropRoomManager {
                 // Redirect to create page after a short delay
                 setTimeout(() => {
                     window.location.href = '/create.html';
-                }, 1500);
+                }, 500);
             } else {
                 await this.handleApiError(response, 'Failed to leave room');
             }
@@ -529,7 +540,7 @@ class EventDropRoomManager {
                 // Redirect to create page after a short delay
                 setTimeout(() => {
                     window.location.href = '/create.html';
-                }, 1500);
+                }, 500);
             } else {
                 await this.handleApiError(response, 'Failed to delete room');
             }
@@ -556,6 +567,14 @@ class EventDropRoomManager {
                 errorMessage = "Resource not found";
             } else if (response.status === 500) {
                 errorMessage = "Server error occurred. Please try again later";
+            }else if (response.status === 410) {
+                    errorMessage = "This room has expired. Redirecting you back to room selection...";
+                    this.showNotification(errorMessage, 'error');
+                    // Clean up and redirect after showing the message
+                    setTimeout(() => {
+                        this.cleanup();
+                        window.location.href = '/create.html';
+                    }, 500);
             } else if (errorData.message) {
                 errorMessage = errorData.message;
             }

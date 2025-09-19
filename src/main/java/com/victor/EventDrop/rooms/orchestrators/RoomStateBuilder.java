@@ -1,4 +1,4 @@
-package com.victor.EventDrop.orchestrators;
+package com.victor.EventDrop.rooms.orchestrators;
 
 import com.victor.EventDrop.filedrops.FileDropService;
 import com.victor.EventDrop.occupants.OccupantService;
@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -29,7 +31,22 @@ public class RoomStateBuilder {
      * */
     public RoomStateDto get(String roomCode, String notification){
         log.info("Getting current room state for room with room code: {}", roomCode);
-        Room room = roomService.findByRoomCode(roomCode);
+        Optional<Room> optionalRoom = roomService.findOptionalRoomByRoomCode(roomCode);
+
+        if (optionalRoom.isEmpty()){
+            return new RoomStateDto(
+                    "",
+                    "",
+                    List.of(),
+                    0,
+                    "This room has expired.",
+                    LocalDateTime.now(),
+                    LocalDateTime.now(),
+                    true
+            );
+        }
+
+        Room room = optionalRoom.get();
 
         return new RoomStateDto(
                 room.getRoomCode(),
@@ -38,7 +55,8 @@ public class RoomStateBuilder {
                 occupantService.getOccupantCount(roomCode),
                 notification,
                 room.getExpiresAt(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                false
         );
     }
 

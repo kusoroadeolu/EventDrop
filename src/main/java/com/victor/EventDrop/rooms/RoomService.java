@@ -7,6 +7,7 @@ import com.victor.EventDrop.rooms.dtos.RoomJoinResponseDto;
 import com.victor.EventDrop.rooms.dtos.RoomResponseDto;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface RoomService {
     //Orchestrates the creation of a room
@@ -17,9 +18,10 @@ public interface RoomService {
 
     void leaveRoom(Occupant occupant);
 
-    List<RoomResponseDto> findAllActiveRooms();
 
     void deleteRoom(Occupant occupant);
+
+    Optional<Room> findOptionalRoomByRoomCode(String roomCode);
 
     void deleteByRoomCode(String roomCode);
 

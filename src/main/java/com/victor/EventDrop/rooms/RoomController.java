@@ -2,11 +2,10 @@ package com.victor.EventDrop.rooms;
 
 import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
-import com.victor.EventDrop.orchestrators.RoomEventListener;
+import com.victor.EventDrop.rooms.orchestrators.RoomEventListener;
 import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinResponseDto;
-import com.victor.EventDrop.rooms.dtos.RoomResponseDto;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +19,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 

@@ -159,9 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
                  // Handle specific backend errors
                 if (response.status === 404) {
                     showError(roomCodeError, 'Room not found. Please check the code.');
+                } else if (response.status === 409) {
+                    showError(roomCodeError, 'Room is full. Cannot join.');
                 } else {
                     showError(roomCodeError, responseData.message || 'An unexpected error occurred.');
                 }
+
                 throw new Error(`Server error: ${response.status}`);
             }
 

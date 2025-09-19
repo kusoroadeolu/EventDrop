@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Primary;
 @RequiredArgsConstructor
 public class RabbitConfig {
 
+
     @Bean
     @Primary
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter(){

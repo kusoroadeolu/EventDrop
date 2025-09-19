@@ -1,6 +1,7 @@
 package com.victor.EventDrop.filedrops;
 
 import com.victor.EventDrop.exceptions.FileDropDownloadException;
+import com.victor.EventDrop.exceptions.FileDropThresholdExceededException;
 import com.victor.EventDrop.exceptions.FileDropUploadException;
 import com.victor.EventDrop.exceptions.NoSuchFileDropException;
 import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
@@ -11,6 +12,7 @@ import com.victor.EventDrop.filedrops.dtos.FileDropResponseDto;
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -39,7 +41,6 @@ public class FileDropServiceImpl implements FileDropService {
     private final AsyncTaskExecutor asyncTaskExecutor;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-
     /**
      * Uploads a file and saves its metadata to the database.
      * Uses async operations internally but blocks until completion to maintain security context.
@@ -54,8 +55,9 @@ public class FileDropServiceImpl implements FileDropService {
             String fileDropName = roomCode + "/" + file.getOriginalFilename();
             InputStream stream = file.getInputStream();
             long fileSize = file.getSize();
+            List<FileDrop> fileDrops = fileDropRepository.findByRoomCode(roomCode);
 
-            return fileDropUtils.validateFileUpload(file, roomCode, fileSize)
+            return fileDropUtils.validateFileUpload(file, fileDrops, fileSize)
                     .thenComposeAsync(i -> {
                         try {
                             return fileDropStorageClient.uploadFile(fileDropName, file.getSize() , stream);
@@ -100,14 +102,16 @@ public class FileDropServiceImpl implements FileDropService {
     @Override
     public BatchUploadResult uploadFiles(String roomCode, List<MultipartFile> files){
 
-        if(files.size() > 20){
-            log.info("Cannot upload more than 20 files at once.");
-            throw new FileDropUploadException("Cannot upload more than 20 files at once");
-        }
-
         log.info("Starting batch file upload. Upload count: {}", files.size());
+
+        List<FileDrop> fileDrops = fileDropRepository.findByRoomCode(roomCode);
+
+        fileDropUtils.validateBatchUpload(fileDrops, files);
+
         List<FileDropResponseDto> successfulUploads = new CopyOnWriteArrayList<>();
         List<FileDropResponseDto> failedUploads = new CopyOnWriteArrayList<>();
+
+
 
         var uploadFutures = files.stream()
                 .map(file -> CompletableFuture.supplyAsync(() ->

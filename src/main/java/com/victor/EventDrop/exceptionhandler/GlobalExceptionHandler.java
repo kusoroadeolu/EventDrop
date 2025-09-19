@@ -4,6 +4,7 @@ import com.victor.EventDrop.exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -32,6 +33,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             RoomTtlExceededException.class,
+            RoomFullException.class,
             FileDropThresholdExceededException.class
     })
     public ResponseEntity<ApiError> handleConflictExceptions(Exception e) {
@@ -42,6 +44,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             RoomCreationException.class,
             RoomDeletionException.class,
+            RoomJoinException.class,
             OccupantCreationException.class,
             OccupantDeletionException.class,
             FileDropUploadException.class,
@@ -51,6 +54,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleInternalServerExceptions(Exception e) {
         ApiError apiError = new ApiError(500, e.getMessage(), LocalDateTime.now());
         return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage())
+        );
+        return ResponseEntity.badRequest().body(errors);
     }
 
     @ExceptionHandler(Exception.class)

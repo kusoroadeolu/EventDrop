@@ -21,11 +21,12 @@ public class Occupant {
 
     @Indexed
     private String roomCode;
+
     @Id
     private UUID sessionId;
+
     private String occupantName;
     @Indexed
     private OccupantRole occupantRole;
     private LocalDateTime joinedAt;
-    private LocalDateTime roomExpiry;
 }

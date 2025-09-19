@@ -1,11 +1,9 @@
 package com.victor.EventDrop.rooms;
 
-import com.victor.EventDrop.exceptions.NoSuchRoomException;
-import com.victor.EventDrop.exceptions.RoomCreationException;
-import com.victor.EventDrop.exceptions.RoomDeletionException;
-import com.victor.EventDrop.exceptions.RoomTtlExceededException;
+import com.victor.EventDrop.exceptions.*;
 import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
+import com.victor.EventDrop.occupants.OccupantRoomJoinResponse;
 import com.victor.EventDrop.rooms.configproperties.RoomJoinConfigProperties;
 import com.victor.EventDrop.rooms.configproperties.RoomLeaveConfigProperties;
 import com.victor.EventDrop.rooms.dtos.*;
@@ -14,7 +12,6 @@ import com.victor.EventDrop.rooms.events.RoomEventType;
 import com.victor.EventDrop.rooms.events.RoomJoinEvent;
 import com.victor.EventDrop.rooms.events.RoomLeaveEvent;
 import com.victor.EventDrop.rooms.listeners.RoomQueueListenerService;
-import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -23,10 +20,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -50,6 +45,8 @@ public class RoomServiceImpl implements RoomService {
     @Value("${room.max-ttl-in-minutes}")
     private long maxTtlInMins;
 
+    private static final int MAX_ROOM_CODE_CREATION_ATTEMPTS = 5;
+
     /**
      * Orchestrates the creation of a new room.
      * It generates a unique room code, validates the TTL, saves the room to the repository,
@@ -63,30 +60,18 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public RoomJoinResponseDto createRoom(RoomCreateRequestDto roomCreateRequestDto){
         log.info("Initiating room creation");
-        String roomCode = generateRoomCode();
-
-        while(roomRepository.existsByRoomCode(roomCode)){
-            log.info("Found existing room with room code: {}. Regenerating room code...", roomCode);
-            roomCode = generateRoomCode();
-        }
-
-        //Cant create rooms that last more than 3 days
-        if(roomCreateRequestDto.ttl() > maxTtlInMins){
-            log.info("Cannot create room with room-code {} because its max TTL was exceeded.", roomCode);
-            throw new RoomTtlExceededException(
-                    String.format("Room TTL of %d minutes exceeded the maximum of %d minutes.", (long)roomCreateRequestDto.ttl(), maxTtlInMins)
-            );
-        }
-
+        double ttlInMinutes = roomCreateRequestDto.ttl();
         //TTL given is in minutes. Convert it to seconds
-        double ttlInSeconds = roomCreateRequestDto.ttl() * 60.0;
+        double ttlInSeconds = ttlInMinutes * 60.0;
+
+        String roomCode = validateTtlAndGenerateRoomCode(ttlInMinutes);
 
         try{
             LocalDateTime createdAt = LocalDateTime.now();
             Room room = Room
                     .builder()
                     .roomCode(roomCode)
-                    .roomName(roomCreateRequestDto.roomName())
+                    .roomName(roomCreateRequestDto.roomName().trim())
                     .ttl(ttlInSeconds)
                     .createdAt(createdAt)
                     .expiresAt(createdAt.plusSeconds((long) ttlInSeconds))
@@ -94,7 +79,6 @@ public class RoomServiceImpl implements RoomService {
 
             roomRepository.save(room);
             roomQueueListenerService.startListeners(roomCode);
-
             eventPublisher.publishEvent(
                     new RoomEvent(
                             roomCreateRequestDto.username() + " created the room",
@@ -114,6 +98,38 @@ public class RoomServiceImpl implements RoomService {
         }
     }
 
+
+    protected String validateTtlAndGenerateRoomCode(double ttl){
+        //Cant create rooms that last more than 3 days
+        if (ttl > maxTtlInMins) {
+            throw new RoomTtlExceededException(
+                    String.format("Room TTL of %d minutes exceeded the maximum of %d minutes.", (long) ttl, maxTtlInMins)
+            );
+        }
+
+        return ensureUniqueRoomCode();
+    }
+
+    protected String ensureUniqueRoomCode(){
+        String roomCode = generateRoomCode();
+        int currentAttempts = 1;
+
+        while(roomRepository.existsByRoomCode(roomCode) && currentAttempts <= MAX_ROOM_CODE_CREATION_ATTEMPTS){
+            if (currentAttempts == MAX_ROOM_CODE_CREATION_ATTEMPTS) {
+                log.info("Failed to generate unique room code after "
+                        + MAX_ROOM_CODE_CREATION_ATTEMPTS + " attempts");
+                throw new RoomCreationException("Failed to generate unique room code after "
+                        + MAX_ROOM_CODE_CREATION_ATTEMPTS + " attempts");
+            }
+
+            log.info("Found existing room with room code: {}. Regenerating room code...", roomCode);
+            roomCode = generateRoomCode();
+            currentAttempts++;
+        }
+
+        return roomCode;
+    }
+
     /**
      * Orchestrates the process of an occupant joining a room.
      * A new session ID is generated, and a message is sent to RabbitMQ to trigger
@@ -125,7 +141,8 @@ public class RoomServiceImpl implements RoomService {
      */
     @Override
     public RoomJoinResponseDto joinRoom(RoomJoinRequestDto roomJoinRequestDto){
-        String roomCode = roomJoinRequestDto.getRoomCode();
+        String roomCode = roomJoinRequestDto.getRoomCode().trim();
+        String username = roomJoinRequestDto.getUsername().trim();
         log.info("Attempting to join room: {}", roomCode);
 
         Room room = findByRoomCode(roomCode);
@@ -134,17 +151,18 @@ public class RoomServiceImpl implements RoomService {
         UUID sessionId = UUID.randomUUID();
         String routingKey = roomJoinConfigProperties.getRoutingKeyPrefix() + roomCode;
 
-        //Sends a room creation event to create an occupant
-        String occupantName = (String) rabbitTemplate.convertSendAndReceive(
+        //Sends a blocking room creation event to create an occupant. Expects a room join response
+        OccupantRoomJoinResponse roomJoinResponse = (OccupantRoomJoinResponse) rabbitTemplate.convertSendAndReceive(
                 roomJoinConfigProperties.getExchangeName(),
                 routingKey,
-                new RoomJoinEvent(roomJoinRequestDto.getUsername(), sessionId ,roomJoinRequestDto.getRole() ,roomJoinRequestDto.getRoomCode(), room.getExpiresAt())
+                new RoomJoinEvent(username, sessionId ,roomJoinRequestDto.getRole() ,roomJoinRequestDto.getRoomCode(), room.getExpiresAt())
         );
 
-        //Publish the event to the sse listener
+        handleRoomJoinResponse(roomJoinResponse);
+
         eventPublisher.publishEvent(
                 new RoomEvent(
-                        occupantName + " joined the room",
+                        username + " joined the room",
                         LocalDateTime.now(),
                         RoomEventType.ROOM_JOIN,
                         roomCode,
@@ -152,7 +170,31 @@ public class RoomServiceImpl implements RoomService {
                 )
         );
 
-        return roomMapper.toRoomJoinResponseDto(room, sessionId.toString(), roomJoinRequestDto.getUsername());
+
+        return roomMapper.toRoomJoinResponseDto(room, sessionId.toString(), username);
+    }
+
+    //Handles the room join response from the listener container
+    private void handleRoomJoinResponse(OccupantRoomJoinResponse roomJoinResponse) {
+        if(roomJoinResponse == null){
+            log.info("Failed to join room because occupant room join response is null");
+            throw new RoomJoinException("Failed to join room because occupant room join response is null");
+        }
+
+        if(roomJoinResponse.success()){
+            log.info("Successfully joined room");
+        }else{
+            switch (roomJoinResponse.status()){
+                case 409 -> {
+                    log.info("Cannot join room because room is full");
+                    throw new RoomFullException("Cannot join room because room is full");
+                }
+                case 500 -> {
+                    log.info("An unexpected error occurred while trying to join this room");
+                    throw new RoomJoinException("An unexpected error occurred while trying to join this room");
+                }
+            }
+        }
     }
 
     /**
@@ -168,7 +210,7 @@ public class RoomServiceImpl implements RoomService {
         String roomCode = occupant.getRoomCode();
         String routingKey = roomLeaveConfigProperties.getRoutingKeyPrefix() + roomCode;
 
-        Boolean result = (Boolean) rabbitTemplate.convertSendAndReceive(
+        rabbitTemplate.convertAndSend(
                 roomLeaveConfigProperties.getExchangeName(),
                 routingKey,
                 new RoomLeaveEvent(
@@ -185,6 +227,7 @@ public class RoomServiceImpl implements RoomService {
                         null
                 )
         );
+
     }
 
     /**
@@ -200,24 +243,6 @@ public class RoomServiceImpl implements RoomService {
     }
 
     /**
-     * Retrieves a list of all active rooms and their metadata.
-     *
-     * @return A list of {@link RoomResponseDto} containing details of active rooms.
-     */
-    @Override
-    public List<RoomResponseDto> findAllActiveRooms(){
-        List<Room> rooms = (List<Room>) roomRepository.findAll();
-        return rooms.stream()
-                .filter(Objects::nonNull)
-                .map(room -> new RoomResponseDto(
-                        room.getRoomCode(),
-                        room.getRoomName(),
-                        Duration.between(LocalDateTime.now(), room.getExpiresAt()).toMinutes()
-                )).toList();
-
-    }
-
-    /**
      * Finds a room by its unique room code.
      *
      * @param roomCode The room code to search for.
@@ -228,6 +253,19 @@ public class RoomServiceImpl implements RoomService {
         return roomRepository
                 .findByRoomCode(roomCode)
                 .orElseThrow(() -> new NoSuchRoomException(String.format("Failed to find room with room code: %s", roomCode)));
+    }
+
+    /**
+     * Finds a room by its unique room code.
+     *
+     * @param roomCode The room code to search for.
+     * @return The {@link Room} entity if found.
+     * @throws NoSuchRoomException if no room is found with the given room code.
+     */
+    @Override
+    public Optional<Room> findOptionalRoomByRoomCode(String roomCode){
+        return roomRepository
+                .findByRoomCode(roomCode);
     }
 
     /**

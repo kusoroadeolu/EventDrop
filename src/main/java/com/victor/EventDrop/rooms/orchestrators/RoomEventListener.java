@@ -1,16 +1,16 @@
-package com.victor.EventDrop.orchestrators;
+package com.victor.EventDrop.rooms.orchestrators;
 
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import com.victor.EventDrop.rooms.events.RoomEventType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 
 @Service
 @Slf4j
@@ -20,7 +20,7 @@ public class RoomEventListener
 
     private final RoomStateBuilder roomStateBuilder;
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters;
-    private final ExecutorService executorService;
+    private final AsyncTaskExecutor asyncTaskExecutor;
 
     /**
      * Constructs and broadcasts the current state of a room to all active SSE clients.
@@ -38,12 +38,15 @@ public class RoomEventListener
         }
 
         RoomStateDto roomStateDto =
-                roomStateBuilder.get(roomEvent.roomCode(), roomEvent.notification());
+            roomStateBuilder.get(roomEvent.roomCode(), roomEvent.notification());
+
+
+
 
         ConcurrentHashMap<String, SseEmitter> roomEmitters = sseEmitters.get(roomEvent.roomCode());
         if (roomEmitters != null){
             roomEmitters.forEach((sessionId, emitter) -> {
-                executorService.execute(() -> {
+                asyncTaskExecutor.execute(() -> {
                     try {
                         emitter.send(roomStateDto);
                         log.info("Sent message to session {} in room {}", sessionId, roomEvent.roomCode());
@@ -62,7 +65,7 @@ public class RoomEventListener
         RoomStateDto roomStateDto =
                 roomStateBuilder.get(roomCode, null);
 
-        executorService.execute(() -> {
+        asyncTaskExecutor.execute(() -> {
             try{
                 emitter.send(roomStateDto);
                 log.info("Sent initial state to session {} in room {}", sessionId, roomCode);
