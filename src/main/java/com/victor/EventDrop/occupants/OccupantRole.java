@@ -6,8 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 @RequiredArgsConstructor
 public enum OccupantRole implements GrantedAuthority {
     OCCUPANT("ROLE_OCCUPANT"),
-    OWNER("ROLE_OWNER"),
-    ADMIN("ROLE_ADMIN");
+    OWNER("ROLE_OWNER");
 
     private final String authority;
 

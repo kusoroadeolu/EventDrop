@@ -42,6 +42,7 @@ public class RoomExpiryListener {
     @EventListener
     public void handleRoomExpiry(RedisKeyExpiredEvent<Room> expiredEvent){
         byte[] expiredEventId = expiredEvent.getId();
+
         String roomCode = new String(expiredEventId, StandardCharsets.UTF_8);
 
         //Since room codes are strings and not UUIDs, return

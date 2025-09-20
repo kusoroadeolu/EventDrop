@@ -44,6 +44,7 @@ public class AzureStorageClient implements FileDropStorageClient {
                 log.info("Successfully uploaded file: {} into azure blob storage", fileName);
                 return client.getBlobUrl();
             }catch (Exception e){
+                log.info("An error occurred while trying to upload file to azure: {}. Error message: {}", fileName, e.getMessage());
                 throw new AzureException(String.format("An error occurred while trying to upload file to azure: %s. Error message: %s", fileName, e.getMessage()), e);
             }
 

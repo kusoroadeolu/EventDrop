@@ -12,6 +12,7 @@ import com.victor.EventDrop.rooms.events.RoomEventType;
 import com.victor.EventDrop.rooms.events.RoomJoinEvent;
 import com.victor.EventDrop.rooms.events.RoomLeaveEvent;
 import com.victor.EventDrop.rooms.listeners.RoomQueueListenerService;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -59,7 +60,7 @@ public class RoomServiceImpl implements RoomService {
      */
     @Override
     public RoomJoinResponseDto createRoom(RoomCreateRequestDto roomCreateRequestDto){
-        log.info("Initiating room creation");
+        log.info("Initiating room creation for room: {}", roomCreateRequestDto.roomName());
         double ttlInMinutes = roomCreateRequestDto.ttl();
         //TTL given is in minutes. Convert it to seconds
         double ttlInSeconds = ttlInMinutes * 60.0;
@@ -110,16 +111,15 @@ public class RoomServiceImpl implements RoomService {
         return ensureUniqueRoomCode();
     }
 
-    protected String ensureUniqueRoomCode(){
+    public String ensureUniqueRoomCode(){
         String roomCode = generateRoomCode();
         int currentAttempts = 1;
 
         while(roomRepository.existsByRoomCode(roomCode) && currentAttempts <= MAX_ROOM_CODE_CREATION_ATTEMPTS){
             if (currentAttempts == MAX_ROOM_CODE_CREATION_ATTEMPTS) {
-                log.info("Failed to generate unique room code after "
-                        + MAX_ROOM_CODE_CREATION_ATTEMPTS + " attempts");
+                log.info("Failed to generate unique room code after {} attempts", currentAttempts);
                 throw new RoomCreationException("Failed to generate unique room code after "
-                        + MAX_ROOM_CODE_CREATION_ATTEMPTS + " attempts");
+                        + currentAttempts + " attempts");
             }
 
             log.info("Found existing room with room code: {}. Regenerating room code...", roomCode);
@@ -175,7 +175,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     //Handles the room join response from the listener container
-    private void handleRoomJoinResponse(OccupantRoomJoinResponse roomJoinResponse) {
+    public void handleRoomJoinResponse(OccupantRoomJoinResponse roomJoinResponse) {
         if(roomJoinResponse == null){
             log.info("Failed to join room because occupant room join response is null");
             throw new RoomJoinException("Failed to join room because occupant room join response is null");
@@ -205,22 +205,25 @@ public class RoomServiceImpl implements RoomService {
      * @param occupant The {@link Occupant} object of the individual leaving the room.
      */
     @Override
-    public void leaveRoom(Occupant occupant){
+    public void leaveRoom(@NotNull Occupant occupant){
         log.info("Handling room leave for occupant with ID: {}", occupant.getSessionId());
         String roomCode = occupant.getRoomCode();
+        String username = occupant.getOccupantName();
         String routingKey = roomLeaveConfigProperties.getRoutingKeyPrefix() + roomCode;
+
+        Room room = findByRoomCode(roomCode);
 
         rabbitTemplate.convertAndSend(
                 roomLeaveConfigProperties.getExchangeName(),
                 routingKey,
                 new RoomLeaveEvent(
-                        roomCode, occupant.getOccupantName(), occupant.getSessionId()
+                        roomCode, username , occupant.getSessionId()
                 )
         );
 
         eventPublisher.publishEvent(
                 new RoomEvent(
-                        occupant.getOccupantName() + " left the room",
+                        username + " left the room",
                         LocalDateTime.now(),
                         RoomEventType.ROOM_LEAVE,
                         roomCode,
@@ -237,7 +240,7 @@ public class RoomServiceImpl implements RoomService {
      * @param occupant The {@link Occupant} object representing the room's owner.
      */
     @Override
-    public void deleteRoom(Occupant occupant){
+    public void deleteRoom(@NotNull Occupant occupant){
         leaveRoom(occupant);
         deleteByRoomCode(occupant.getRoomCode());
     }
@@ -291,7 +294,7 @@ public class RoomServiceImpl implements RoomService {
      *
      * @return An 8-character unique room code.
      */
-    private String generateRoomCode(){
+    public String generateRoomCode(){
         String vars = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
         int len = vars.length();
         StringBuilder sb = new StringBuilder();

@@ -15,6 +15,8 @@ public class RoomEmitterHandler {
 
     public void removeEmitter(String roomCode, String sessionId) {
         ConcurrentHashMap<String, SseEmitter> sessionsInRoom = sseEmitters.get(roomCode);
+
+
         if (sessionsInRoom != null) {
             sessionsInRoom.remove(sessionId);
             if (sessionsInRoom.isEmpty()) {
@@ -24,8 +26,6 @@ public class RoomEmitterHandler {
 
 
     }
-
-
 
     public void removeRoomEmitters(String roomCode){
         sseEmitters.remove(roomCode);

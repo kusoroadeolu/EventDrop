@@ -75,12 +75,11 @@ Had a race condition issue with batch uploads where multiple files could bypass 
 Fixed it by validating the entire batch as one unit instead of individual files.
 
 **Current limits:**
-- Max 50 files per room (prevents Redis from choking on huge file lists)
-- Max 2GB total size per room
+- Max 30 files per room (prevents large SSE payloads from crashing clients)
+- Max 2GB total size per room (prevents abuse as free storage service)
 - Batch validation prevents concurrent uploads from exceeding limits
 
 ### SSE Implementation
-
 Sends full room state snapshots instead of diffs. Less efficient bandwidth-wise but way simpler to implement and handles reconnections cleanly. 
 Tested with 20 files, runs smoothly. Will optimize if I ever get 1000+ users lol.
 
@@ -132,8 +131,9 @@ This  approach centralizes the expiration logic and avoids complex HTTP status c
 ## What's missing
 - Not yet written unit tests(will do this tomorrow)
 - Not yet deployed on Azure(will do this next tomorrow)
+
+## Future Optimizations(UX Based)
 - PWA features (coming soon)
 - Diff-based SSE (only if scale demands it)
-- User kick functionality (not needed for ephemeral rooms)
-
+- Backdoor keys for owners to reclaim rooms and password protected rooms(will do this who knows when lol)
 Built this primarily for personal use but designed it to handle multiple users. The architecture prioritizes reliability and simplicity over optimization - will add complexity only when usage demands it.

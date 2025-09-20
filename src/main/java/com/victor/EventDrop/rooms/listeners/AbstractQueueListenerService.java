@@ -23,17 +23,18 @@ public abstract class AbstractQueueListenerService {
      * @param map A concurrent hashmap keeping track of all listeners of a queue
      * */
     protected void startListeners(String queueName, MessageListenerAdapter adapter, ConcurrentHashMap<String, SimpleMessageListenerContainer> map){
-        try{
-            log.info("Starting listener for queue: {}", queueName);
-            if (queueName == null || queueName.trim().isEmpty()){
-                log.info("Queue name cannot be null or empty");
-                throw new IllegalArgumentException("Queue name cannot be null or empty");
-            }
+        log.info("Starting listener for queue: {}", queueName);
+        if (queueName == null || queueName.trim().isEmpty()){
+            log.info("Queue name cannot be null or empty");
+            throw new IllegalArgumentException("Queue name cannot be null or empty");
+        }
 
-            if(map.containsKey(queueName)){
-                log.info("Listener for queue '{}' is already running.", queueName);
-                return;
-            }
+        if(map.containsKey(queueName)){
+            log.info("Listener for queue '{}' is already running.", queueName);
+            return;
+        }
+
+        try{
 
             SimpleMessageListenerContainer listenerContainer = new SimpleMessageListenerContainer(connectionFactory);
             listenerContainer.setConnectionFactory(connectionFactory);
@@ -43,8 +44,8 @@ public abstract class AbstractQueueListenerService {
             map.put(queueName, listenerContainer);
             log.info("Started room listener for queue: {}", queueName);
         }catch (Exception e){
-            log.info("Failed to start room listener for queue: {}", queueName);
-            throw new AmqpException(String.format("Failed to start room listener for queue: %s", queueName));
+            log.info("Failed to start room listener for queue: {}", queueName, e);
+            throw new AmqpException(String.format("Failed to start room listener for queue: %s", queueName), e);
         }
     }
 

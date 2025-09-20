@@ -16,7 +16,7 @@ Create a room or join one with a room code. Upload files (only room owners can u
 /metrics - basic system stats
 ```
 
-## Auth stuff
+## Auth
 
 Session-based auth using cookies. No account creation needed.
 
@@ -142,7 +142,7 @@ No auth required. Just returns basic usage stats:
 }
 ```
 
-## Random notes
+## More notes
 
 - Room codes are 8 characters
 - TTL is in minutes

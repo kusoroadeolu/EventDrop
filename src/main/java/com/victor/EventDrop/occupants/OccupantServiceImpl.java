@@ -28,7 +28,7 @@ public class OccupantServiceImpl implements OccupantService {
     private final OccupantRepository occupantRepository;
 
     @Value("${room.max-size}")
-    private Integer maxRoomSize;
+    private int maxRoomSize;
 
     /**
      * A listener method which listens for {@link RoomJoinEvent} events to create occupants for the room
@@ -57,7 +57,7 @@ public class OccupantServiceImpl implements OccupantService {
 
         try {
             log.info("Attempting to save occupant: {}", occupant.getOccupantName());
-            Occupant saved = occupantRepository.save(occupant);
+            occupantRepository.save(occupant);
             log.info("Successfully saved occupant: {}", occupant.getOccupantName());
             return new OccupantRoomJoinResponse(true, 200);
         } catch (ListenerExecutionFailedException e){
@@ -125,12 +125,10 @@ public class OccupantServiceImpl implements OccupantService {
                 return;
             }
 
-            log.info("DEBUG: Processing {} occupants", occupants.size());
-
-
             occupants.parallelStream()
                     .forEach(
-                            occupant -> redisTemplate.expire(occupant.getSessionId().toString(), Duration.ofSeconds(2)));
+                            occupant -> redisTemplate.expire(occupant.getSessionId().toString(), Duration.ofSeconds(2))
+                    );
 
             log.info("Successfully expired all occupants in room with room code: {}", roomCode);
         }catch (ListenerExecutionFailedException e){

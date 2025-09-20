@@ -165,7 +165,6 @@ public class FileDropServiceImpl implements FileDropService {
                     String blobName = fileDrop.getFileName();
 
                     return fileDropStorageClient.downloadFile(blobName, fileDropUrl);
-
                 }, asyncTaskExecutor)
                 .exceptionally(throwable -> {
                     log.info("An unexpected error occurred while trying to download file drop with ID: {}. Error message: {}", fileDropId, throwable.getMessage());

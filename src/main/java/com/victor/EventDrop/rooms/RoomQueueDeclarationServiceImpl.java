@@ -53,7 +53,8 @@ public class RoomQueueDeclarationServiceImpl implements RoomQueueDeclarationServ
      */
     @Override
     public String declareRoomJoinQueueAndBinding(String roomCode){
-        var queueDeclareDto = new RoomQueueDeclareDto(roomJoinConfigProperties.getQueuePrefix(), roomJoinConfigProperties.getRoutingKeyPrefix(), roomCode);
+        var queueDeclareDto = new RoomQueueDeclareDto(roomJoinConfigProperties.getQueuePrefix(),
+                roomJoinConfigProperties.getRoutingKeyPrefix(), roomCode);
         return declareRoomQueueAndBinding(queueDeclareDto, roomJoinExchange);
     }
 
@@ -71,11 +72,7 @@ public class RoomQueueDeclarationServiceImpl implements RoomQueueDeclarationServ
 
     @Override
     public void deleteAllQueues(String roomCode){
-        try{
-            rabbitAdmin.deleteQueue(roomJoinConfigProperties.getQueuePrefix() + roomCode);
-            rabbitAdmin.deleteQueue(roomLeaveConfigProperties.getQueuePrefix() + roomCode);
-        }catch (Exception e){
-            log.info("Failed to delete all queues for room with room code: {}", roomCode);
-        }
+        rabbitAdmin.deleteQueue(roomJoinConfigProperties.getQueuePrefix() + roomCode);
+        rabbitAdmin.deleteQueue(roomLeaveConfigProperties.getQueuePrefix() + roomCode);
     }
 }

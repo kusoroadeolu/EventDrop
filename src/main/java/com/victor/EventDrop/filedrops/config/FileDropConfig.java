@@ -1,5 +1,6 @@
 package com.victor.EventDrop.filedrops.config;
 
+import org.apache.coyote.ProtocolHandler;
 import org.springframework.boot.web.embedded.tomcat.TomcatProtocolHandlerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,7 +33,7 @@ public class FileDropConfig {
     }
 
     @Bean
-    public TomcatProtocolHandlerCustomizer<?> tomcatProtocolHandlerCustomizer(ExecutorService virtualExecutorService){
+    public TomcatProtocolHandlerCustomizer<? extends ProtocolHandler> tomcatProtocolHandlerCustomizer(ExecutorService virtualExecutorService){
         return protocolHandler -> {
             protocolHandler.setExecutor(virtualExecutorService);
         };
