@@ -18,7 +18,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@RedisHash( value = "fileDrop", timeToLive = 259200)
+@RedisHash( value = "fileDrop", timeToLive = 86400)
 public class FileDrop {
     @Id
     @Indexed

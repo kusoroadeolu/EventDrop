@@ -119,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // On success (201 CREATED)
-            setCookie('SESSION_ID', responseData.sessionId);
             window.location.href = 'rooms.html'; // Redirect to the room page
 
         } catch (error) {
@@ -169,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // On success (200 OK)
-            setCookie('SESSION_ID', responseData.sessionId);
             window.location.href = 'rooms.html'; // Redirect to the room page
 
         } catch (error) {

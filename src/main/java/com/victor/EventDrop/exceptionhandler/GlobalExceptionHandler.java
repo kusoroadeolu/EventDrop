@@ -24,6 +24,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(apiError, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler({
+            RateLimitExceededException.class
+    })
+    public ResponseEntity<ApiError> handleRateLimitExceededExceptions(Exception e) {
+        ApiError apiError = new ApiError(429, e.getMessage(), LocalDateTime.now());
+        return new ResponseEntity<>(apiError, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         Map<String, String> error = new HashMap<>();

@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,6 +41,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+import java.time.Duration;
 import java.util.List;
 
 import java.util.concurrent.TimeUnit;
@@ -102,19 +105,13 @@ public class SessionFilter extends OncePerRequestFilter {
 
         if(occupant != null){
 
-//            if(!roomRepository.existsByRoomCode(occupant.getRoomCode())){
-//                log.info("This room with code: {} does not exist again.", occupant.getRoomCode());
-//                SecurityContextHolder.clearContext();
-//                response.setStatus(HttpServletResponse.SC_GONE);
-//                return;
-//            }
 
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(occupant, null , List.of(occupant.getOccupantRole()));
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
             //Refresh the session
-            redisTemplate.expire(sessionId, 5L, TimeUnit.MINUTES);
+            redisTemplate.expire(sessionId, Duration.ofMinutes(5));
 
             if(!"/rooms".equals(path)){
                 log.info("Successfully authenticated user and refreshed session ID.");

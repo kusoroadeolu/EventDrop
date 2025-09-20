@@ -1,10 +1,14 @@
-package com.victor.EventDrop.rooms.orchestrators;
+package com.victor.EventDrop.rooms.listeners;
 
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import com.victor.EventDrop.rooms.events.RoomEventType;
+import com.victor.EventDrop.rooms.orchestrators.RoomStateBuilder;
+import com.victor.EventDrop.rooms.orchestrators.RoomStateDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -29,6 +33,7 @@ public class RoomEventListener
      *
      * @param roomEvent The event containing the room code and notification details.
      */
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     @EventListener
     public void listen(RoomEvent roomEvent){
 
@@ -39,9 +44,6 @@ public class RoomEventListener
 
         RoomStateDto roomStateDto =
             roomStateBuilder.get(roomEvent.roomCode(), roomEvent.notification());
-
-
-
 
         ConcurrentHashMap<String, SseEmitter> roomEmitters = sseEmitters.get(roomEvent.roomCode());
         if (roomEmitters != null){

@@ -2,12 +2,11 @@ package com.victor.EventDrop.rooms;
 
 import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
-import com.victor.EventDrop.rooms.orchestrators.RoomEventListener;
+import com.victor.EventDrop.rooms.listeners.RoomEventListener;
 import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinResponseDto;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,12 +30,14 @@ public class RoomController {
     private final RoomService roomService;
     private final RoomEventListener roomEventListener;
     private final RoomEmitterHandler roomEmitterHandler;
+    private final CookieUtils cookieUtils;
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters;
 
 
     @PostMapping("/create")
-    public ResponseEntity<RoomJoinResponseDto> createRoom(@Valid @RequestBody RoomCreateRequestDto requestDto){
+    public ResponseEntity<RoomJoinResponseDto> createRoom(@Valid @RequestBody RoomCreateRequestDto requestDto, HttpServletResponse response){
         RoomJoinResponseDto responseDto = roomService.createRoom(requestDto);
+        response.addCookie(cookieUtils.setCookie(responseDto.sessionId()));
         return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
     }
 
@@ -44,14 +45,7 @@ public class RoomController {
     public ResponseEntity<RoomJoinResponseDto> joinRoom(@Valid @RequestBody RoomJoinRequestDto roomJoinRequestDto, HttpServletResponse response){
         roomJoinRequestDto.setRole(OccupantRole.OCCUPANT);
         RoomJoinResponseDto responseDto = roomService.joinRoom(roomJoinRequestDto);
-
-        Cookie cookie = new Cookie("SESSIONID", responseDto.sessionId());
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(30 * 60);
-        response.addCookie(cookie);
-
+        response.addCookie(cookieUtils.setCookie(responseDto.sessionId()));
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 

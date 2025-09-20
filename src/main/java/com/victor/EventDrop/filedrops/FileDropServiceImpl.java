@@ -1,7 +1,6 @@
 package com.victor.EventDrop.filedrops;
 
 import com.victor.EventDrop.exceptions.FileDropDownloadException;
-import com.victor.EventDrop.exceptions.FileDropThresholdExceededException;
 import com.victor.EventDrop.exceptions.FileDropUploadException;
 import com.victor.EventDrop.exceptions.NoSuchFileDropException;
 import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
@@ -12,7 +11,6 @@ import com.victor.EventDrop.filedrops.dtos.FileDropResponseDto;
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -20,8 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

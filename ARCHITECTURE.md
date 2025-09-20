@@ -1,8 +1,9 @@
 # EventDrop – Architecture Documentation
 
 ## Why I built this
-
-Got tired of sending files through Discord/WhatsApp just to get them on my phone. EventDrop is my solution - ephemeral file sharing with temporary rooms that auto-delete everything. No accounts, no permanent storage, minimal friction.
+Got tired of sending files through Discord/WhatsApp just to get them on my phone. 
+EventDrop is my solution - ephemeral file sharing with temporary rooms that auto-delete everything. 
+No accounts, no permanent storage, minimal friction.
 
 ## What it does
 
@@ -12,15 +13,15 @@ Got tired of sending files through Discord/WhatsApp just to get them on my phone
 - Everything expires automatically - rooms, files, sessions
 
 ## Frontend (Web App)
-
-Single page app that works on desktop and mobile. Planning to make it a PWA eventually.
+Multiple page app that works on desktop and mobile. 
+Planning to make it a PWA eventually.
 
 **Role system:**
 - **OWNER**: Upload/delete files, delete entire room, plus all occupant permissions
 - **OCCUPANT**: Download files, receive live updates via SSE, leave room
 
 **Session handling:**
-- Uses localStorage to persist session ID
+- Uses cookies to persist session ID
 - Sessions last 5 minutes, refresh on activity
 - Lost session = refresh page and rejoin room
 
@@ -43,11 +44,11 @@ public class Occupant {
     // TTL: 300 seconds, refreshed on requests
 }
 
-@RedisHash(value = "fileDrop", timeToLive = 259200)
+@RedisHash(value = "fileDrop", timeToLive = 86400)
 public class FileDrop {
     @Id UUID fileId;
     String roomCode;
-    // TTL: 3 days max to prevent data leaks so that the scheduled job can handle it
+    // TTL: 1 day max to prevent data leaks so that the scheduled job can handle it
 }
 ```
 
@@ -68,7 +69,7 @@ public class FileDrop {
 2. Redis TTL expires naturally
 3. Room expiry event cascades to all files/occupants
 4. Scheduled job catches anything with ttl == -1 (but excludes Spring's index keys)
-5. Azure lifecycle policy nukes everything after 3 days
+5. Azure lifecycle policy nukes everything after 1 day
 
 ### File Upload Quotas
 Had a race condition issue with batch uploads where multiple files could bypass quotas by checking limits simultaneously. 
@@ -82,6 +83,11 @@ Fixed it by validating the entire batch as one unit instead of individual files.
 ### SSE Implementation
 Sends full room state snapshots instead of diffs. Less efficient bandwidth-wise but way simpler to implement and handles reconnections cleanly. 
 Tested with 20 files, runs smoothly. Will optimize if I ever get 1000+ users lol.
+
+## Rate Limits
+No rate limits applied for both the landing page and /rooms GET (to prevent sse streams from burning through the limits)
+Default rate limits applied for downloading, joining rooms, leaving rooms,
+Strict rate limits applied for all file related actions to prevent abuse
 
 ```json
 {
@@ -105,7 +111,7 @@ This is essential to prevent any data leaks that will consume resources.
 **RabbitMQ listeners:**
 - ListenerExecutionFailedException → requeue message
 - Generic exceptions → reject and don't requeue (prevents infinite loops)
-- Room expiry failures just get logged (it's a one-time event anyway)
+- Room expiry failures just get logged (it's a one-time event anyway, these will later get cleaned up eventually)
 
 **Partial failure handling:**
 - Azure blob deletion fails? File gets marked as deleted, actual cleanup happens during room expiry
@@ -116,6 +122,9 @@ This is essential to prevent any data leaks that will consume resources.
 Room expiration is now handled gracefully. When a room expires, a boolean flag is set to true in the room's state. 
 The frontend, upon receiving this update via SSE, redirects the user to the create/join room page, providing a seamless and intentional transition.
 This  approach centralizes the expiration logic and avoids complex HTTP status code handling on the frontend. (Parsing http status codes with SSE emitters is a nightmare)
+
+## Testing
+Wrote comprehensive unit tests that cover the most common user actions
 
 ## Key Design Decisions
 
@@ -129,7 +138,6 @@ This  approach centralizes the expiration logic and avoids complex HTTP status c
 6. **Batch quota validation** - Fixes race condition without maintaining separate Redis counters
 
 ## What's missing
-- Not yet written unit tests(will do this tomorrow)
 - Not yet deployed on Azure(will do this next tomorrow)
 
 ## Future Optimizations(UX Based)

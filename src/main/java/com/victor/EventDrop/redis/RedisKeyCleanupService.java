@@ -37,7 +37,7 @@ public class RedisKeyCleanupService {
                 if (key != null && !key.startsWith("metrics:")) {
                     long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
 
-                    if (ttl == -1) {
+                    if (ttl == -1 || ttl == -2) {
                         log.warn("Found orphaned key with no expiry: {}. Setting a 2-second TTL for cleanup.", key);
                         redisTemplate.expire(key, 2, TimeUnit.SECONDS);
                         keysProcessed++;

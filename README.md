@@ -109,8 +109,8 @@ Multiple `file` entries in form data.
 Returns:
 ```json
 {
-  "successfulUploads": [...],
-  "failedUploads": [...]
+  "successfulUploads": [],
+  "failedUploads": []
 }
 ```
 

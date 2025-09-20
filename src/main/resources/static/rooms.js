@@ -100,7 +100,7 @@ class EventDropRoomManager {
                 setTimeout(() => {
                     this.cleanup();
                     window.location.href = '/create.html';
-                }, 500);
+                }, 1000);
                 return;
             }
 

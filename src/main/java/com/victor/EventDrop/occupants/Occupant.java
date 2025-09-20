@@ -26,6 +26,7 @@ public class Occupant {
     private UUID sessionId;
 
     private String occupantName;
+
     @Indexed
     private OccupantRole occupantRole;
     private LocalDateTime joinedAt;

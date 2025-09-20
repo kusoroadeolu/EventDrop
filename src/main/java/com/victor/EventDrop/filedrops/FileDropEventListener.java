@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Event listener for handling file drop-related cleanup operations.
@@ -49,7 +50,6 @@ public class FileDropEventListener {
 
             if(fileDrops.isEmpty())return;
 
-
             log.info("Handling room expiry for file drops for room with room code: {}", roomCode);
             fileDrops
                     .parallelStream()
@@ -57,8 +57,11 @@ public class FileDropEventListener {
                         redisTemplate.expire(fileDrop.getFileId().toString(), Duration.ofSeconds(2));
                     });
 
-            List<String> fileNames = fileDrops.stream()
-                    .map(FileDrop::getFileName).toList();
+            List<String> fileNames = fileDrops
+                    .stream()
+                    .map(FileDrop::getFileName)
+                    .toList();
+
             fileDropStorageClient.deleteFiles(fileNames);
 
         }catch (ListenerExecutionFailedException e){
@@ -81,12 +84,13 @@ public class FileDropEventListener {
     @EventListener
     public void handleExpiredKeys(RedisKeyExpiredEvent<FileDrop> expiredEvent){
         byte[] keyBytes = expiredEvent.getId();
+
         if (keyBytes.length == 0) {
             log.warn("Received Redis expiry event with null or empty key");
             return;
         }
 
-        String fileId = new String(keyBytes, StandardCharsets.UTF_8).trim();
+        String fileId = new String(keyBytes, StandardCharsets.UTF_8);
 
         if (fileId.length() <= 8) {
             log.warn("Received Redis expiry event with invalid file ID");
@@ -103,7 +107,6 @@ public class FileDropEventListener {
         }
 
         try {
-
             fileDropRepository.deleteById(uuid);
             log.info("Successfully deleted expired file drop with ID: {}", fileId);
 

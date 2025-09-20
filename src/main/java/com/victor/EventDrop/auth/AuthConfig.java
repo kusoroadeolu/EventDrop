@@ -43,6 +43,13 @@ public class AuthConfig {
                 }
                 )
                 .addFilterBefore(sessionFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout(
+                        onLogout -> {
+                            onLogout.logoutUrl("/rooms/leave");
+                            onLogout.deleteCookies("SESSION_ID");
+                            onLogout.clearAuthentication(true);
+                        }
+                )
                 .build();
     }
 
