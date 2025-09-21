@@ -10,6 +10,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -54,6 +56,12 @@ public class RoomEventListener
                         log.info("Sent message to session {} in room {}", sessionId, roomEvent.roomCode());
                     } catch (IOException e) {
                         log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomEvent.roomCode(), e.getMessage());
+                        emitter.completeWithError(e);
+                    } catch (AccessDeniedException e){
+                        log.error("Authorization error occurred during streaming. Terminating gracefully...", e);
+                        emitter.completeWithError(e);
+                    }catch (Exception e){
+                        log.error("Unexpected error occurred during streaming. Terminating gracefully...", e);
                         emitter.completeWithError(e);
                     }
                 });

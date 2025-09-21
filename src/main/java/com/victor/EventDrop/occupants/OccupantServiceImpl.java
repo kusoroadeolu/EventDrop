@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -34,9 +36,11 @@ public class OccupantServiceImpl implements OccupantService {
     /**
      * A listener method which listens for {@link RoomJoinEvent} events to create occupants for the room
      * @param roomJoinEvent The event containing metadata relating to room joins
+     * @return A join response indicating if the occupant object was created successfully
      * */
     @Override
     @RabbitListener(queues = "${room.join.queue-name}")
+    @Retryable(retryFor = ListenerExecutionFailedException.class, backoff = @Backoff(multiplier = 3, maxDelay = 3500L))
     public OccupantRoomJoinResponse createOccupant(RoomJoinEvent roomJoinEvent){
         log.info("Initiating room occupant creation for room: {}", roomJoinEvent.roomCode());
 

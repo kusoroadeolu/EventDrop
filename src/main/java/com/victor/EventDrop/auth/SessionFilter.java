@@ -1,50 +1,26 @@
 package com.victor.EventDrop.auth;
 
 
-
-
-
 import com.victor.EventDrop.occupants.Occupant;
-
 import com.victor.EventDrop.occupants.OccupantRepository;
-
 import com.victor.EventDrop.rooms.RoomRepository;
-import com.victor.EventDrop.rooms.RoomService;
 import jakarta.servlet.FilterChain;
-
 import jakarta.servlet.ServletException;
-
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-
 import jakarta.servlet.http.HttpServletResponse;
-
 import lombok.RequiredArgsConstructor;
-
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.RedisTemplate;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-
 import org.springframework.security.core.Authentication;
-
 import org.springframework.security.core.context.SecurityContextHolder;
-
 import org.springframework.stereotype.Component;
-
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
-
 import java.io.IOException;
-
 import java.time.Duration;
 import java.util.List;
-
-import java.util.concurrent.TimeUnit;
 
 
 
@@ -105,6 +81,11 @@ public class SessionFilter extends OncePerRequestFilter {
 
         if(occupant != null){
 
+            if(!roomRepository.existsByRoomCode(occupant.getRoomCode())){
+                log.info("Room: {} does not exist again", occupant.getRoomCode());
+                SecurityContextHolder.clearContext();
+                return;
+            }
 
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(occupant, null , List.of(occupant.getOccupantRole()));

@@ -1,12 +1,11 @@
 # EventDrop – Architecture Documentation
 
-## Why I built this
-Got tired of sending files through Discord/WhatsApp just to get them on my phone. 
-EventDrop is my solution - ephemeral file sharing with temporary rooms that auto-delete everything. 
+## Quick Review
+Got tired of sending files through Discord/WhatsApp just to get them on my phone and manually re-delete the files from there 
+EventDrop is my solution - ephemeral file sharing with temporary rooms that automatically cleans itself. 
 No accounts, no permanent storage, minimal friction.
 
 ## What it does
-
 - Create or join rooms with 8-character codes
 - Upload files (room owners only), download files (everyone)
 - Real-time updates via Server-Sent Events
@@ -58,7 +57,6 @@ public class FileDrop {
 - 1-day lifecycle policy as final cleanup
 
 ### Event-Driven Cleanup
-
 **RabbitMQ handles the coordination:**
 - Room expiry triggers cascading cleanup
 - 2-second delay between room deletion and file cleanup to prevent race conditions
@@ -110,7 +108,7 @@ This is essential to prevent any data leaks that will consume resources.
 
 **RabbitMQ listeners:**
 - 3 queues 3 message types and 3 bindings for room join, leave, expiry events
-- ListenerExecutionFailedException → requeue message
+- ListenerExecutionFailedException → requeue message/retry
 - Generic exceptions → reject and don't requeue (prevents infinite loops)
 - Room expiry failures just get logged (it's a one-time event anyway, these will later get cleaned up eventually)
 
@@ -125,12 +123,10 @@ The frontend, upon receiving this update via SSE, redirects the user to the crea
 This  approach centralizes the expiration logic and avoids complex HTTP status code handling on the frontend. (Parsing http status codes with SSE emitters is a nightmare)
 
 ## Testing
-Wrote comprehensive unit tests that cover the most common user actions
+Wrote comprehensive unit tests that cover the most common user actions/flows
 
 ## Key Design Decisions
-
 **Why these choices:**
-
 1. **Full SSE snapshots over diffs** - Simpler to implement, handles edge cases better, lightweight payload anyway
 2. **Individual entity TTLs** - More reliable than complex nested key structures
 3. **Event-driven cleanup** - Prevents race conditions between natural expiry and forced deletion
@@ -145,4 +141,4 @@ Wrote comprehensive unit tests that cover the most common user actions
 - PWA features (coming soon)
 - Diff-based SSE (only if scale demands it)
 - Backdoor keys for owners to reclaim rooms and password protected rooms(will do this who knows when lol)
-Built this primarily for personal use but designed it to handle multiple users. The architecture prioritizes reliability and simplicity over optimization - will add complexity only when usage demands it.
+Built this primarily for personal use but designed it to handle multiple users at a small scale. The architecture prioritizes reliability and simplicity over optimization - will add complexity only when usage demands it.

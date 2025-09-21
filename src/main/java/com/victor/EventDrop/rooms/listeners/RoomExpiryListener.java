@@ -58,10 +58,10 @@ public class RoomExpiryListener {
         ));
 
         log.info("Handling expired room: {}", roomCode);
+        roomEmitterHandler.removeRoomEmitters(roomCode);
 
         try{
             roomService.deleteByRoomCode(roomCode);
-            roomEmitterHandler.removeRoomEmitters(roomCode);
 
             // Publishes a message to RabbitMQ to notify other services of the room's expiration.
             rabbitTemplate.convertAndSend(
@@ -69,7 +69,6 @@ public class RoomExpiryListener {
                     roomExpiryConfigProperties.getRoutingKey(),
                     new RoomExpiryEvent(roomCode)
             );
-
 
         } catch (Exception e){
             log.error("Failed to handle room expiry for room with code: {}. Cause: {}", roomCode, e.getMessage(), e);

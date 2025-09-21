@@ -1,5 +1,6 @@
 package com.victor.EventDrop.rabbitmq;
 
+import com.azure.storage.common.policy.RetryPolicyType;
 import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
 import com.victor.EventDrop.occupants.OccupantService;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.retry.RetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.security.KeyManagementException;
@@ -25,9 +30,11 @@ import java.security.NoSuchAlgorithmException;
 public class RabbitConfig {
 
     private final RabbitConfigProperties rabbitConfigProperties;
-    private AsyncTaskExecutor asyncTaskExecutor;
+    private final AsyncTaskExecutor asyncTaskExecutor;
     @Value("${spring.rabbitmq.prefetch-count}")
     private int prefetchCount;
+    @Value("${spring.rabbitmq.reply-timeout}")
+    private int replyTimeout;
 
     @Bean
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter(){
@@ -35,10 +42,11 @@ public class RabbitConfig {
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, Jackson2JsonMessageConverter jackson2JsonMessageConverter){
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+    public RabbitTemplate rabbitTemplate(CachingConnectionFactory cachingConnectionFactory, Jackson2JsonMessageConverter jackson2JsonMessageConverter){
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(cachingConnectionFactory);
         rabbitTemplate.setMessageConverter(jackson2JsonMessageConverter);
-
+        rabbitTemplate.setReplyTimeout(replyTimeout);
+        rabbitTemplate.setTaskExecutor(asyncTaskExecutor);
         return rabbitTemplate;
     }
 
@@ -48,7 +56,8 @@ public class RabbitConfig {
     }
 
     @Bean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(CachingConnectionFactory cachingConnectionFactory){
+    @Profile("prod")
+    public SimpleRabbitListenerContainerFactory simpleRabbitListenerContainerFactory(CachingConnectionFactory cachingConnectionFactory){
         SimpleRabbitListenerContainerFactory simpleRabbitListenerContainerFactory = new SimpleRabbitListenerContainerFactory();
         simpleRabbitListenerContainerFactory.setConnectionFactory(cachingConnectionFactory);
         simpleRabbitListenerContainerFactory.setPrefetchCount(prefetchCount);
@@ -58,6 +67,7 @@ public class RabbitConfig {
     }
 
     @Bean
+    @Profile("prod")
     public CachingConnectionFactory cachingConnectionFactory() throws NoSuchAlgorithmException, KeyManagementException {
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
         connectionFactory.setPassword(rabbitConfigProperties.getPassword());

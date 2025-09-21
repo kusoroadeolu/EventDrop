@@ -37,7 +37,7 @@ public class RoomController {
     @PostMapping("/create")
     public ResponseEntity<RoomJoinResponseDto> createRoom(@Valid @RequestBody RoomCreateRequestDto requestDto, HttpServletResponse response){
         RoomJoinResponseDto responseDto = roomService.createRoom(requestDto);
-        response.addCookie(cookieUtils.setCookie(responseDto.sessionId()));
+        response.addCookie(cookieUtils.setSessionCookie(responseDto.sessionId()));
         return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
     }
 
@@ -45,7 +45,7 @@ public class RoomController {
     public ResponseEntity<RoomJoinResponseDto> joinRoom(@Valid @RequestBody RoomJoinRequestDto roomJoinRequestDto, HttpServletResponse response){
         roomJoinRequestDto.setRole(OccupantRole.OCCUPANT);
         RoomJoinResponseDto responseDto = roomService.joinRoom(roomJoinRequestDto);
-        response.addCookie(cookieUtils.setCookie(responseDto.sessionId()));
+        response.addCookie(cookieUtils.setSessionCookie(responseDto.sessionId()));
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
@@ -84,7 +84,7 @@ public class RoomController {
     @DeleteMapping("/delete")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> deleteRoom(@AuthenticationPrincipal Occupant occupant){
-        roomService.leaveRoom(occupant);
+        roomService.deleteRoom(occupant);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

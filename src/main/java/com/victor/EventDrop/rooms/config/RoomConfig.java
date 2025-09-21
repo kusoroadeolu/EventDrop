@@ -37,13 +37,12 @@ public class RoomConfig {
      */
     @Bean
     public DirectExchange roomJoinExchange(){
-        return new DirectExchange(roomJoinConfigProperties.getExchangeName(), true, true);
+        return new DirectExchange(roomJoinConfigProperties.getExchangeName(), true, false);
     }
 
 
     @Bean
     public Queue roomJoinQueue(){
-        //Hardcoded string for practice
         return QueueBuilder.durable(roomJoinConfigProperties.getQueueName()).quorum().build();
     }
 

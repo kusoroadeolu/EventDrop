@@ -32,6 +32,7 @@ public class AuthConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
                         auth.requestMatchers("/").permitAll();
+                        auth.requestMatchers("/favicon.ico").permitAll();
                         auth.requestMatchers("/landing-page.html").permitAll();
                         auth.requestMatchers("/landing-page.js").permitAll();
                         auth.requestMatchers("/create-room.js").permitAll();

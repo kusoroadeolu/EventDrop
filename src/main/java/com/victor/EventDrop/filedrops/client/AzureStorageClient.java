@@ -40,7 +40,7 @@ public class AzureStorageClient implements FileDropStorageClient {
             try {
                 BlobClient client = blobContainerClient.getBlobClient(fileName);
                 log.info("Attempting to upload file: {} into azure blob storage", fileName);
-                 client.upload(inputStream);
+                 client.upload(inputStream, sizeInBytes, true);
                 log.info("Successfully uploaded file: {} into azure blob storage", fileName);
                 return client.getBlobUrl();
             }catch (Exception e){
@@ -96,7 +96,10 @@ public class AzureStorageClient implements FileDropStorageClient {
             log.info("Attempting batch delete for {} blobs", blobNames.size());
             BlobBatch batch = blobBatchClient.getBlobBatch();
             blobNames.forEach(blobName -> {
-                batch.deleteBlob(blobContainerClient.getBlobClient(blobName).getBlobUrl());
+                BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
+                if(blobClient.exists()){
+                    batch.deleteBlob(blobClient.getBlobUrl());
+                }
             });
             blobBatchClient.submitBatch(batch);
 

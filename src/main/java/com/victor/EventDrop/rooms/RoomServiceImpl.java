@@ -19,9 +19,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +44,7 @@ public class RoomServiceImpl implements RoomService {
     private final RabbitTemplate rabbitTemplate;
     private final RoomMapper roomMapper;
     private final SecureRandom secureRandom;
+    private final RedisTemplate<String, Object> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
     @Value("${room.max-ttl-in-minutes}")
     private long maxTtlInMins;
@@ -232,14 +235,14 @@ public class RoomServiceImpl implements RoomService {
 
     /**
      * Orchestrates the deletion of a room by first triggering a leave event for the owner
-     * and then deleting the room from the repository.
+     * and then expiring the room key with a grace period of 5 seconds to prevent any edge case
      *
      * @param occupant The {@link Occupant} object representing the room's owner.
      */
     @Override
     public void deleteRoom(@NotNull Occupant occupant){
         leaveRoom(occupant);
-        deleteByRoomCode(occupant.getRoomCode());
+        redisTemplate.expire(occupant.getRoomCode(), Duration.ofSeconds(5));
     }
 
     /**
@@ -277,7 +280,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public void deleteByRoomCode(String roomCode){
         try{
-            roomRepository.deleteById(roomCode);
+
             log.info("Successfully deleted room with room code: {}", roomCode);
         }catch (Exception e){
             log.info("Failed to delete room with room code: {}", roomCode);
