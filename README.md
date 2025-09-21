@@ -150,7 +150,7 @@ No auth required. Just returns basic usage stats:
 - Files get signed URLs from Azure for downloads
 - SSE connection stays open until room expires or client disconnects
 - If you're not the room owner, you can't upload or delete files
-- Multiple cleanup layers to make sure nothing gets orphaned
+- Multiple cleanup layers to make sure nothing gets orphaned/prevent data leaks
 
 ## Error handling
 
