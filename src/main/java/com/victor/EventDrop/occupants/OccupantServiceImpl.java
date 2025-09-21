@@ -36,6 +36,7 @@ public class OccupantServiceImpl implements OccupantService {
      * @param roomJoinEvent The event containing metadata relating to room joins
      * */
     @Override
+    @RabbitListener(queues = "${room.join.queue-name}")
     public OccupantRoomJoinResponse createOccupant(RoomJoinEvent roomJoinEvent){
         log.info("Initiating room occupant creation for room: {}", roomJoinEvent.roomCode());
 
@@ -75,6 +76,7 @@ public class OccupantServiceImpl implements OccupantService {
      * @param roomLeaveEvent The event containing metadata relating to room leave
      * */
     @Override
+    @RabbitListener(queues = "${room.leave.queue-name}")
     public void deleteOccupant(RoomLeaveEvent roomLeaveEvent){
         log.info("Initiating room occupant deletion for room: {}. Occupant name: {}", roomLeaveEvent.roomCode(), roomLeaveEvent.occupantName());
         Occupant occupant = occupantRepository.findBySessionId(roomLeaveEvent.sessionId().toString());

@@ -47,8 +47,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         //Skip limits for SSE
         if (requestURI.startsWith("/rooms") && "GET".equals(method)) {
-            log.info("Hitting rooms");
-            filterChain.doFilter(request, response);
+           filterChain.doFilter(request, response);
             return;
         }
 

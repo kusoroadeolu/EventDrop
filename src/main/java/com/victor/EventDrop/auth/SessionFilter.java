@@ -116,6 +116,7 @@ public class SessionFilter extends OncePerRequestFilter {
             if(!"/rooms".equals(path)){
                 log.info("Successfully authenticated user and refreshed session ID.");
             }
+
         }else{
             log.info("Occupant not found for the session ID");
             SecurityContextHolder.clearContext();

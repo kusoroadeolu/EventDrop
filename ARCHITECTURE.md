@@ -55,7 +55,7 @@ public class FileDrop {
 **Azure Blob Storage:**
 - Actual file contents
 - Signed URLs for downloads (no server proxy)
-- 3-day lifecycle policy as final cleanup
+- 1-day lifecycle policy as final cleanup
 
 ### Event-Driven Cleanup
 
@@ -109,13 +109,14 @@ This is essential to prevent any data leaks that will consume resources.
 ### Error Handling
 
 **RabbitMQ listeners:**
+- 3 queues 3 message types and 3 bindings for room join, leave, expiry events
 - ListenerExecutionFailedException → requeue message
 - Generic exceptions → reject and don't requeue (prevents infinite loops)
 - Room expiry failures just get logged (it's a one-time event anyway, these will later get cleaned up eventually)
 
 **Partial failure handling:**
 - Azure blob deletion fails? File gets marked as deleted, actual cleanup happens during room expiry
-- If that fails too, Azure lifecycle policy handles it after 3 days
+- If that fails too, Azure lifecycle policy handles it after 1 day
 - Prioritized avoiding data leaks over perfect consistency
 
 ### User Experience

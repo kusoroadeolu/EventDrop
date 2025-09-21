@@ -41,7 +41,7 @@ public class AzureBlobConfig {
     }
 
     @Bean
-    @Profile("dev")
+    //@Profile("dev")
     public DefaultAzureCredential credential(){
         return new DefaultAzureCredentialBuilder()
                 .build();

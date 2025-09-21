@@ -6,12 +6,13 @@ import com.victor.EventDrop.occupants.OccupantRole;
 import com.victor.EventDrop.occupants.OccupantRoomJoinResponse;
 import com.victor.EventDrop.rooms.configproperties.RoomJoinConfigProperties;
 import com.victor.EventDrop.rooms.configproperties.RoomLeaveConfigProperties;
-import com.victor.EventDrop.rooms.dtos.*;
+import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
+import com.victor.EventDrop.rooms.dtos.RoomJoinRequestDto;
+import com.victor.EventDrop.rooms.dtos.RoomJoinResponseDto;
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import com.victor.EventDrop.rooms.events.RoomEventType;
 import com.victor.EventDrop.rooms.events.RoomJoinEvent;
 import com.victor.EventDrop.rooms.events.RoomLeaveEvent;
-import com.victor.EventDrop.rooms.listeners.RoomQueueListenerService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,6 @@ public class RoomServiceImpl implements RoomService {
     private final RabbitTemplate rabbitTemplate;
     private final RoomMapper roomMapper;
     private final SecureRandom secureRandom;
-    private final RoomQueueListenerService roomQueueListenerService;
     private final ApplicationEventPublisher eventPublisher;
     @Value("${room.max-ttl-in-minutes}")
     private long maxTtlInMins;
@@ -79,7 +79,6 @@ public class RoomServiceImpl implements RoomService {
                     .build();
 
             roomRepository.save(room);
-            roomQueueListenerService.startListeners(roomCode);
             eventPublisher.publishEvent(
                     new RoomEvent(
                             roomCreateRequestDto.username() + " created the room",
@@ -149,13 +148,12 @@ public class RoomServiceImpl implements RoomService {
 
         log.info("Found room with room code: {}. Joining... ", roomCode);
         UUID sessionId = UUID.randomUUID();
-        String routingKey = roomJoinConfigProperties.getRoutingKeyPrefix() + roomCode;
 
         //Sends a blocking room creation event to create an occupant. Expects a room join response
         OccupantRoomJoinResponse roomJoinResponse = (OccupantRoomJoinResponse) rabbitTemplate.convertSendAndReceive(
                 roomJoinConfigProperties.getExchangeName(),
-                routingKey,
-                new RoomJoinEvent(username, sessionId ,roomJoinRequestDto.getRole() ,roomJoinRequestDto.getRoomCode(), room.getExpiresAt())
+                roomJoinConfigProperties.getRoutingKey(),
+                new RoomJoinEvent(username, sessionId ,roomJoinRequestDto.getRole(),roomJoinRequestDto.getRoomCode(), room.getExpiresAt())
         );
 
         handleRoomJoinResponse(roomJoinResponse);
@@ -209,13 +207,12 @@ public class RoomServiceImpl implements RoomService {
         log.info("Handling room leave for occupant with ID: {}", occupant.getSessionId());
         String roomCode = occupant.getRoomCode();
         String username = occupant.getOccupantName();
-        String routingKey = roomLeaveConfigProperties.getRoutingKeyPrefix() + roomCode;
 
         Room room = findByRoomCode(roomCode);
 
         rabbitTemplate.convertAndSend(
                 roomLeaveConfigProperties.getExchangeName(),
-                routingKey,
+                roomLeaveConfigProperties.getRoutingKey(),
                 new RoomLeaveEvent(
                         roomCode, username , occupant.getSessionId()
                 )

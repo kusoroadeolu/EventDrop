@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 public class RoomJoinConfigProperties {
-    private String queuePrefix;
-    private String routingKeyPrefix;
+    private String queueName;
+    private String routingKey;
     private String exchangeName;
 }

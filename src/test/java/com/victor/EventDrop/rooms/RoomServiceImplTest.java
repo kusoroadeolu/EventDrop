@@ -12,11 +12,13 @@ import com.victor.EventDrop.rooms.dtos.RoomJoinResponseDto;
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import com.victor.EventDrop.rooms.events.RoomJoinEvent;
 import com.victor.EventDrop.rooms.events.RoomLeaveEvent;
-import com.victor.EventDrop.rooms.listeners.RoomQueueListenerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
@@ -44,8 +46,6 @@ class RoomServiceImplTest {
     private RoomMapper roomMapper;
     @Mock
     private SecureRandom secureRandom;
-    @Mock
-    private RoomQueueListenerService roomQueueListenerService;
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
@@ -105,7 +105,7 @@ class RoomServiceImplTest {
         try(MockedStatic<UUID> staticUuid = mockStatic(UUID.class)){
             staticUuid.when(UUID::randomUUID).thenReturn(sessionIdAsUuid);
             assertEquals(sessionIdAsUuid.toString(), sessionId);
-            when(roomJoinConfigProperties.getRoutingKeyPrefix()).thenReturn("room-join-routing-key-");
+            when(roomJoinConfigProperties.getRoutingKey()).thenReturn("room-join-routing-key-");
             when(rabbitTemplate.convertSendAndReceive(
                     anyString(),
                     anyString(),
@@ -122,7 +122,6 @@ class RoomServiceImplTest {
             assertNotNull(expectedResponseDto);
             assertEquals(roomJoinResponseDto, expectedResponseDto);
             verify(roomRepository, times(1)).save(any(Room.class));
-            verify(roomQueueListenerService, times(1)).startListeners(anyString());
             verify(eventPublisher, times(2)).publishEvent(any(RoomEvent.class));
         }
     }
@@ -184,7 +183,7 @@ class RoomServiceImplTest {
         try(MockedStatic<UUID> staticUuid = mockStatic(UUID.class)){
             staticUuid.when(UUID::randomUUID).thenReturn(sessionIdAsUuid);
             assertEquals(sessionIdAsUuid.toString(), sessionId);
-            when(roomJoinConfigProperties.getRoutingKeyPrefix()).thenReturn("room-join-routing-key-");
+            when(roomJoinConfigProperties.getRoutingKey()).thenReturn("room-join-routing-key-");
             when(rabbitTemplate.convertSendAndReceive(
                     anyString(),
                     anyString(),
@@ -266,7 +265,7 @@ class RoomServiceImplTest {
         when(roomRepository.findByRoomCode("room-code")).thenReturn(Optional.of(room));
         when(occupant.getOccupantName()).thenReturn("occupant-name");
         when(occupant.getSessionId()).thenReturn(UUID.randomUUID());
-        when(roomLeaveConfigProperties.getRoutingKeyPrefix()).thenReturn("room-leave-routing-key-");
+        when(roomLeaveConfigProperties.getRoutingKey()).thenReturn("room-leave-routing-key-");
         when(roomLeaveConfigProperties.getExchangeName()).thenReturn("room-leave-exchange");
 
 
@@ -289,7 +288,7 @@ class RoomServiceImplTest {
         when(roomRepository.findByRoomCode("room-code")).thenReturn(Optional.of(room));
         when(occupant.getOccupantName()).thenReturn("occupant-name");
         when(occupant.getSessionId()).thenReturn(UUID.randomUUID());
-        when(roomLeaveConfigProperties.getRoutingKeyPrefix()).thenReturn("room-leave-routing-key-");
+        when(roomLeaveConfigProperties.getRoutingKey()).thenReturn("room-leave-routing-key-");
         when(roomLeaveConfigProperties.getExchangeName()).thenReturn("room-leave-exchange");
         when(occupant.getRoomCode()).thenReturn("room-code");
 

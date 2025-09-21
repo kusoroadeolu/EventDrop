@@ -2,12 +2,13 @@ package com.victor.EventDrop.rooms.config;
 
 import com.victor.EventDrop.rooms.configproperties.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.security.SecureRandom;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * RabbitMQ configuration for room-related events.
@@ -20,6 +21,16 @@ public class RoomConfig {
     private final RoomLeaveConfigProperties roomLeaveConfigProperties;
 
     /**
+     * Creates a SecureRandom bean for generating cryptographically strong random numbers.
+     *
+     * @return A SecureRandom instance.
+     */
+    @Bean
+    public SecureRandom secureRandom(){
+        return new SecureRandom();
+    }
+
+    /**
      * Creates a durable, auto-delete exchange for room join events.
      *
      * @return A DirectExchange for room join events.
@@ -28,6 +39,30 @@ public class RoomConfig {
     public DirectExchange roomJoinExchange(){
         return new DirectExchange(roomJoinConfigProperties.getExchangeName(), true, true);
     }
+
+
+    @Bean
+    public Queue roomJoinQueue(){
+        //Hardcoded string for practice
+        return QueueBuilder.durable(roomJoinConfigProperties.getQueueName()).quorum().build();
+    }
+
+    @Bean
+    public Binding roomJoinBinding(DirectExchange roomJoinExchange, Queue roomJoinQueue){
+        return BindingBuilder.bind(roomJoinQueue).to(roomJoinExchange).with(roomJoinConfigProperties.getRoutingKey());
+    }
+
+    @Bean
+    public Queue roomLeaveQueue(){
+        //Hardcoded string for practice
+        return QueueBuilder.durable(roomLeaveConfigProperties.getQueueName()).quorum().build();
+    }
+
+    @Bean
+    public Binding roomLeaveBinding(DirectExchange roomLeaveExchange, Queue roomLeaveQueue){
+        return BindingBuilder.bind(roomLeaveQueue).to(roomLeaveExchange).with(roomJoinConfigProperties.getRoutingKey());
+    }
+
 
     /**
      * Creates a durable exchange for room leave events.
@@ -38,6 +73,9 @@ public class RoomConfig {
     public DirectExchange roomLeaveExchange(){
         return new DirectExchange(roomLeaveConfigProperties.getExchangeName(), true, false);
     }
+
+
+
 
     /**
      * Creates a durable exchange for room expiry events.
@@ -56,7 +94,7 @@ public class RoomConfig {
      */
     @Bean
     public Queue roomExpiryQueue(){
-        return new Queue(roomExpiryConfigProperties.getQueueName(), true);
+        return QueueBuilder.durable(roomExpiryConfigProperties.getQueueName()).quorum().build();
     }
 
     /**
@@ -71,5 +109,9 @@ public class RoomConfig {
         return BindingBuilder.bind(roomExpiryQueue).to(roomExpiryExchange).with(roomExpiryConfigProperties.getRoutingKey());
     }
 
+    @Bean
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters(){
+        return new ConcurrentHashMap<>();
+    }
 
 }

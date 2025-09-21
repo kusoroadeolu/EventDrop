@@ -2,7 +2,6 @@ package com.victor.EventDrop.rooms.listeners;
 
 import com.victor.EventDrop.rooms.Room;
 import com.victor.EventDrop.rooms.RoomEmitterHandler;
-import com.victor.EventDrop.rooms.RoomQueueDeclarationService;
 import com.victor.EventDrop.rooms.RoomService;
 import com.victor.EventDrop.rooms.configproperties.RoomExpiryConfigProperties;
 import com.victor.EventDrop.rooms.events.RoomEvent;
@@ -17,7 +16,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,11 +23,7 @@ class RoomExpiryListenerTest {
     @Mock
     private RoomService roomService;
     @Mock
-    private RoomQueueListenerService roomQueueListenerService;
-    @Mock
     private RabbitTemplate rabbitTemplate;
-    @Mock
-    private RoomQueueDeclarationService roomQueueDeclarationService;
     @Mock
     private RoomExpiryConfigProperties roomExpiryConfigProperties;
     @Mock
@@ -55,9 +49,7 @@ class RoomExpiryListenerTest {
         //Assert
         verify(roomService, times(1)).deleteByRoomCode(anyString());
         verify(applicationEventPublisher, times(1)).publishEvent(any(RoomEvent.class));
-        verify(roomQueueListenerService, times(1)).stopAllListeners(anyString());
         verify(roomEmitterHandler, times(1)).removeRoomEmitters(anyString());
-        verify(roomQueueDeclarationService, times(1)).deleteAllQueues(anyString());
         verify(rabbitTemplate, times(1)).convertAndSend(
                 anyString(), anyString(), any(RoomExpiryEvent.class)
         );

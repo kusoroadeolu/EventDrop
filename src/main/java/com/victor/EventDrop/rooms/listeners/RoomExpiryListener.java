@@ -27,9 +27,7 @@ import java.util.UUID;
 public class RoomExpiryListener {
 
     private final RoomService roomService;
-    private final RoomQueueListenerService roomQueueListenerService;
     private final RabbitTemplate rabbitTemplate;
-    private final RoomQueueDeclarationService roomQueueDeclarationService;
     private final RoomExpiryConfigProperties roomExpiryConfigProperties;
     private final RoomEmitterHandler roomEmitterHandler;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -63,8 +61,6 @@ public class RoomExpiryListener {
 
         try{
             roomService.deleteByRoomCode(roomCode);
-            roomQueueListenerService.stopAllListeners(roomCode);
-            roomQueueDeclarationService.deleteAllQueues(roomCode);
             roomEmitterHandler.removeRoomEmitters(roomCode);
 
             // Publishes a message to RabbitMQ to notify other services of the room's expiration.
