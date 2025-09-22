@@ -21,25 +21,32 @@ import java.time.Duration;
 public class RedisConfig {
 
     private final AsyncTaskExecutor asyncTaskExecutor;
-    private final RedisCloudConfigProperties redisConfigProperties;
+
+//    private final RedisCloudConfigProperties redisConfigProperties;
+//
+//    @Bean
+//    @Profile("prod")
+//    public RedisConnectionFactory redisConnectionFactory(){
+//        RedisStandaloneConfiguration standaloneConfiguration = new RedisStandaloneConfiguration();
+//        standaloneConfiguration.setPort(redisConfigProperties.getPort());
+//        standaloneConfiguration.setHostName(redisConfigProperties.getHost());
+//        standaloneConfiguration.setUsername(redisConfigProperties.getUsername());
+//        standaloneConfiguration.setPassword(redisConfigProperties.getPassword());
+//
+//        LettuceClientConfiguration clientConfiguration = LettuceClientConfiguration
+//                .builder()
+//                .commandTimeout(Duration.ofSeconds(30))
+//                .build();
+//
+//        LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory(standaloneConfiguration, clientConfiguration);
+//        lettuceConnectionFactory.setExecutor(asyncTaskExecutor);
+//        return lettuceConnectionFactory;
+//    }
 
     @Bean
-    @Profile("prod")
-    public RedisConnectionFactory redisConnectionFactory(){
-        RedisStandaloneConfiguration standaloneConfiguration = new RedisStandaloneConfiguration();
-        standaloneConfiguration.setPort(redisConfigProperties.getPort());
-        standaloneConfiguration.setHostName(redisConfigProperties.getHost());
-        standaloneConfiguration.setUsername(redisConfigProperties.getUsername());
-        standaloneConfiguration.setPassword(redisConfigProperties.getPassword());
-
-        LettuceClientConfiguration clientConfiguration = LettuceClientConfiguration
-                .builder()
-                .commandTimeout(Duration.ofSeconds(30))
-                .build();
-
-        LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory(standaloneConfiguration, clientConfiguration);
-        lettuceConnectionFactory.setExecutor(asyncTaskExecutor);
-        return lettuceConnectionFactory;
+    @Profile("dev")
+    public RedisConnectionFactory lettuceConnectionFactory(){
+        return new LettuceConnectionFactory();
     }
 
     @Bean

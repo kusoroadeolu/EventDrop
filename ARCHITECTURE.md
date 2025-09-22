@@ -134,8 +134,6 @@ Wrote comprehensive unit tests that cover the most common user actions/flows
 5. **Session-based auth** - No account friction, still provides role separation
 6. **Batch quota validation** - Fixes race condition without maintaining separate Redis counters
 
-## What's missing
-- Not yet deployed on Azure(will do this next tomorrow)
 
 ## Future Optimizations(UX Based)
 - PWA features (coming soon)

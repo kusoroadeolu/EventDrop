@@ -84,6 +84,7 @@ public class SessionFilter extends OncePerRequestFilter {
             if(!roomRepository.existsByRoomCode(occupant.getRoomCode())){
                 log.info("Room: {} does not exist again", occupant.getRoomCode());
                 SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
                 return;
             }
 
