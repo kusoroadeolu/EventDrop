@@ -1,12 +1,27 @@
 # EventDrop API Documentation
 
 EventDrop is basically my solution to stop sending files through Discord/WhatsApp to get them on my phone. It's an ephemeral file sharing system where you create temporary rooms, share files, and everything auto-deletes after a set time.
+Built this with Spring Boot, Redis, RabbitMQ, and Azure Blob Storage. 
+Uses SSE for real-time updates.
 
-Built this with Spring Boot, Redis, RabbitMQ, and Azure Blob Storage. Uses SSE for real-time updates because I wanted something more reliable than polling.
+## Architecture (Summary)
+EventDrop is designed for **ephemeral file sharing** with automatic cleanup.  
+Key choices:
+
+- **Redis (with TTL):** Fast, in-memory store for rooms, occupants, and metadata.
+- **Azure Blob Storage:** Files stored outside the app, auto-deleted by lifecycle policies.
+- **Event-driven cleanup:** RabbitMQ for durable async tasks, Spring ApplicationEventPublisher for in-app events.
+- **Multi-layer cleanup:** User deletes → Redis TTL → RabbitMQ expiry → nightly job → Azure policy.
+- **SSE for real-time updates:** Full room snapshots keep clients simple and robust.
+- **Quotas + rate limits:** Prevents abuse (30 files, 2GB max per room, strict upload limits).
+
+👉 See [ARCHITECTURE.md](./ARCHITECTURE.md) for details.
 
 ## How it works
-
-Create a room or join one with a room code. Upload files (only room owners can upload). Everyone in the room gets live updates when stuff happens. Room expires automatically and everything gets cleaned up.
++ Create a room or join one with a room code. 
++ Upload files (only room owners can upload). 
++ Everyone in the room gets live updates when stuff happens. 
++ Room expires automatically and everything gets cleaned up.
 
 ## Base paths
 
@@ -42,7 +57,6 @@ Returns:
 {
   "roomName": "My Room",
   "username": "Alice", 
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
   "expiresAt": "2025-09-14T22:06:00"
 }
 ```
@@ -166,18 +180,6 @@ Frontend should handle these and show appropriate messages.
 - PWA features (coming soon)
 - Backdoor keys for owners to reclaim rooms and password protected rooms(will do this who knows when lol)
 
-## Architecture (Summary)
-EventDrop is designed for **ephemeral file sharing** with automatic cleanup.  
-Key choices:
-
-- **Redis (with TTL):** Fast, in-memory store for rooms, occupants, and metadata.
-- **Azure Blob Storage:** Files stored outside the app, auto-deleted by lifecycle policies.
-- **Event-driven cleanup:** RabbitMQ for durable async tasks, Spring ApplicationEventPublisher for in-app events.
-- **Multi-layer cleanup:** User deletes → Redis TTL → RabbitMQ expiry → nightly job → Azure policy.
-- **SSE for real-time updates:** Full room snapshots keep clients simple and robust.
-- **Quotas + rate limits:** Prevents abuse (30 files, 2GB max per room, strict upload limits).
-
-👉 See [ARCHITECTURE.md](./ARCHITECTURE.md) for details.
 
 ## Deployment
 This was deployed on azure
