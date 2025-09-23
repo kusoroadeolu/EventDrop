@@ -2,6 +2,7 @@ package com.victor.EventDrop.exceptionhandler;
 
 import com.victor.EventDrop.exceptions.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -22,7 +23,9 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ApiError> handleNotFoundExceptions(Exception e) {
         ApiError apiError = new ApiError(404, e.getMessage(), LocalDateTime.now());
-        return new ResponseEntity<>(apiError, HttpStatus.NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiError);
     }
 
     @ExceptionHandler({
@@ -30,19 +33,25 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ApiError> handleRateLimitExceededExceptions(Exception e) {
         ApiError apiError = new ApiError(429, e.getMessage(), LocalDateTime.now());
-        return new ResponseEntity<>(apiError, HttpStatus.TOO_MANY_REQUESTS);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiError);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
         ApiError apiError = new ApiError(403, ex.getMessage(), LocalDateTime.now());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiError);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiError);
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ApiError> handleAuthDenied(AuthorizationDeniedException ex) {
         ApiError apiError = new ApiError(401, ex.getMessage(), LocalDateTime.now());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiError);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiError);
     }
 
     @ExceptionHandler({
@@ -53,7 +62,9 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ApiError> handleConflictExceptions(Exception e) {
         ApiError apiError = new ApiError(409, e.getMessage(), LocalDateTime.now());
-        return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiError);
     }
 
     @ExceptionHandler({
@@ -68,7 +79,9 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ApiError> handleInternalServerExceptions(Exception e) {
         ApiError apiError = new ApiError(500, e.getMessage(), LocalDateTime.now());
-        return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiError);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -82,8 +95,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGenericException(Exception e) {
-        ApiError apiError = new ApiError(500, e.getMessage(), LocalDateTime.now());
-        return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+        ApiError apiError = new ApiError(500, "An unexpected error occurred.", LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiError);
     }
-
 }

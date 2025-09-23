@@ -164,5 +164,21 @@ Frontend should handle these and show appropriate messages.
 
 ## Future Optimizations(UX Based)
 - PWA features (coming soon)
-- Diff-based SSE (only if scale demands it)
 - Backdoor keys for owners to reclaim rooms and password protected rooms(will do this who knows when lol)
+
+## Architecture (Summary)
+EventDrop is designed for **ephemeral file sharing** with automatic cleanup.  
+Key choices:
+
+- **Redis (with TTL):** Fast, in-memory store for rooms, occupants, and metadata.
+- **Azure Blob Storage:** Files stored outside the app, auto-deleted by lifecycle policies.
+- **Event-driven cleanup:** RabbitMQ for durable async tasks, Spring ApplicationEventPublisher for in-app events.
+- **Multi-layer cleanup:** User deletes → Redis TTL → RabbitMQ expiry → nightly job → Azure policy.
+- **SSE for real-time updates:** Full room snapshots keep clients simple and robust.
+- **Quotas + rate limits:** Prevents abuse (30 files, 2GB max per room, strict upload limits).
+
+👉 See [ARCHITECTURE.md](./ARCHITECTURE.md) for details.
+
+## Deployment
+This was deployed on azure
+https://eventdrop1-bxgbf8btf6aqd3ha.francecentral-01.azurewebsites.net/

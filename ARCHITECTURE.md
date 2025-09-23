@@ -15,6 +15,7 @@ No accounts, no permanent storage, minimal friction.
 Multiple page app that works on desktop and mobile. 
 Planning to make it a PWA eventually.
 
+
 **Role system:**
 - **OWNER**: Upload/delete files, delete entire room, plus all occupant permissions
 - **OCCUPANT**: Download files, receive live updates via SSE, leave room
@@ -23,6 +24,66 @@ Planning to make it a PWA eventually.
 - Uses cookies to persist session ID
 - Sessions last 5 minutes, refresh on activity
 - Lost session = refresh page and rejoin room
+
+## Core Components
+
+### Redis
+Redis acts as the primary data store for rooms, occupants, and file metadata.
+
+- **Why Redis?**  
+  For an ephemeral service, using a relational DB would be overkill. Redis’s in-memory structures provide sub-millisecond latency for session checks and room lookups.  
+  Its built-in **TTL (time-to-live)** support is crucial — every room, occupant, and file metadata entry expires automatically. This makes Redis a natural fit for the project’s short-lived data model.
+
+- **Tradeoff:**  
+  Redis gives you speed + TTL but sacrifices durability. That’s acceptable here since persistence isn’t a requirement.
+
+---
+
+### Event-Driven Communication
+The system uses a hybrid event-driven approach:
+
+- **RabbitMQ (asynchronous business logic):**  
+  Handles heavy events like room joins, leaves, and expiry.  
+  This keeps API calls snappy — complex logic (like cascading file deletions) runs in the background.
+
+- **Spring ApplicationEventPublisher (in-process events):**  
+  Used for lightweight, synchronous events like incrementing metrics or pushing updates to clients via SSE.  
+  This avoids broker overhead when speed matters.
+
+- **Why both?**  
+  RabbitMQ ensures durability across services.  
+  ApplicationEventPublisher gives instant responses inside the app.  
+  Each was chosen for the scale and latency profile of the event it handles.
+
+---
+
+### Multi-Layered Cleanup
+Data integrity and security are handled by **multiple layers of cleanup**:
+
+1. **User-driven:** Manual deletion of files and rooms.
+2. **Redis TTL:** Fast, automatic expiration at the DB level.
+3. **Event-driven:** Expiry events trigger cascading cleanup of room-related data.
+4. **Scheduled job:** A nightly sweep (2 AM) removes any orphaned Redis keys.
+5. **Azure Blob lifecycle policy:** Final failsafe — any file older than 24 hours is deleted automatically at the storage level.
+
+- **Why layered?**  
+  Redis TTL alone is powerful but not foolproof. The layered approach ensures redundancy and reduces the risk of leaks or resource buildup.
+
+---
+
+## Challenges and Solutions
+
+### Race Condition in Batch Uploads
+- **Problem:** Simultaneous uploads could bypass the per-room file quota (30 files) because each upload checked the limit independently.
+- **Solution:** Validate the batch as a whole before inserting. This atomic check enforces the quota fairly.
+
+---
+
+### RabbitMQ Message Failures
+- **Problem:** Messages sometimes failed, causing unprocessed events to pile up.
+- **Solution:**
+    - Added a retry template with max 5 retries for transient failures.
+    - Configured listener containers to handle retries gracefully.
 
 ## Backend (Spring Boot + Java 21)
 
@@ -73,7 +134,8 @@ public class FileDrop {
 **Current limits:**
 - Max 30 files per room (prevents large SSE payloads from crashing clients)
 - Max 2GB total size per room (prevents abuse as free storage service)
-- Batch validation prevents concurrent uploads from exceeding limits
+- Batch validation prevents concurrent uploads from exceeding limits and proper error handling
+- Duplicate file prevention (your separate backend work)
 
 ### SSE Implementation
 Sends full room state snapshots instead of diffs. Less efficient bandwidth-wise but way simpler to implement and handles reconnections cleanly. 

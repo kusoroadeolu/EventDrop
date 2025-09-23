@@ -29,17 +29,6 @@ public class AzureBlobConfig {
 
     private final AzureStorageBlobConfigProperties configProperties;
 
-    @Value("${spring.cloud.azure.vault.url}")
-    private String vaultUrl;
-
-    @Bean
-    public SecretClient secretClient(DefaultAzureCredential credential){
-        return new SecretClientBuilder()
-                .vaultUrl(vaultUrl)
-                .credential(credential)
-                .buildClient();
-    }
-
     @Bean
     //@Profile("dev")
     public DefaultAzureCredential credential(){

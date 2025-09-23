@@ -1,5 +1,8 @@
 # CHANGELOGS
 This file includes the most improvements and fixes I made to event drop
+Command to deploy jar to azure using CLI:
+az webapp config appsettings set --resource-group "EventDrop-RG" --name "eventdrop1" --settings "SPRING_PROFILES_ACTIVE=prod"
+az webapp deploy --resource-group EventDrop-RG --name eventdrop --src-path "C:\Users\eastw\Git Projects\Personal\EventDrop\target\EventDrop-0.0.1-SNAPSHOT.jar" --type jar
 
 ### 9/18/25
 #### Fixed
@@ -27,4 +30,4 @@ Made multiple UI and UX improvements:
 + Fixed an issue which occurred when a user redirected to a blank page after a room expired or got deleted
 + Fixed an issue where users got stuck in rooms after they expired
 + Fixed header inconsistencies and layout differences between pages
-+ Fixed room details layout to properly display all information (username, room 
++ Fixed room details layout to properly display all information (username, roomcode, expires at, occupant count)

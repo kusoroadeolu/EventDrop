@@ -24,8 +24,6 @@ spring:
 
   cloud:
     azure:
-      vault:
-        url: https://eventdropkv.vault.azure.net/
       storage:
         blob:
           account-name: eventdrop112
@@ -80,3 +78,8 @@ cookies:
 rate-limit:
   max-request-default: 30 #Per minute
   max-request-strict: 10 #Per minute
+
+server:
+  port: 80
+
+
