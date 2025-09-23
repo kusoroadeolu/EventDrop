@@ -18,6 +18,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.retry.RetryPolicy;
+import org.springframework.retry.backoff.BackOffPolicy;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.backoff.Sleeper;
+import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -42,10 +46,24 @@ public class RabbitConfig {
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(CachingConnectionFactory cachingConnectionFactory, Jackson2JsonMessageConverter jackson2JsonMessageConverter){
+    public RetryTemplate rabbitRetryTemplate(){
+        RetryTemplate retryTemplate = new RetryTemplate();
+        RetryPolicy retryPolicy = new SimpleRetryPolicy(5);
+        retryTemplate.setRetryPolicy(retryPolicy);
+
+        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        backOffPolicy.setBackOffPeriod(2000);
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+        return retryTemplate;
+
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(CachingConnectionFactory cachingConnectionFactory, Jackson2JsonMessageConverter jackson2JsonMessageConverter, RetryTemplate rabbitRetryTemplate){
         RabbitTemplate rabbitTemplate = new RabbitTemplate(cachingConnectionFactory);
         rabbitTemplate.setMessageConverter(jackson2JsonMessageConverter);
         rabbitTemplate.setReplyTimeout(replyTimeout);
+        rabbitTemplate.setRetryTemplate(rabbitRetryTemplate);
         rabbitTemplate.setTaskExecutor(asyncTaskExecutor);
         return rabbitTemplate;
     }
@@ -57,11 +75,12 @@ public class RabbitConfig {
 
     @Bean
     @Profile("prod")
-    public SimpleRabbitListenerContainerFactory simpleRabbitListenerContainerFactory(CachingConnectionFactory cachingConnectionFactory){
+    public SimpleRabbitListenerContainerFactory simpleRabbitListenerContainerFactory(CachingConnectionFactory cachingConnectionFactory,RetryTemplate rabbitRetryTemplate){
         SimpleRabbitListenerContainerFactory simpleRabbitListenerContainerFactory = new SimpleRabbitListenerContainerFactory();
         simpleRabbitListenerContainerFactory.setConnectionFactory(cachingConnectionFactory);
         simpleRabbitListenerContainerFactory.setPrefetchCount(prefetchCount);
         simpleRabbitListenerContainerFactory.setTaskExecutor(asyncTaskExecutor);
+        simpleRabbitListenerContainerFactory.setRetryTemplate(rabbitRetryTemplate);
         return simpleRabbitListenerContainerFactory;
 
     }

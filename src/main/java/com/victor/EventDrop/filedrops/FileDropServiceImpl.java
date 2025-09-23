@@ -1,8 +1,6 @@
 package com.victor.EventDrop.filedrops;
 
-import com.victor.EventDrop.exceptions.FileDropDownloadException;
-import com.victor.EventDrop.exceptions.FileDropUploadException;
-import com.victor.EventDrop.exceptions.NoSuchFileDropException;
+import com.victor.EventDrop.exceptions.*;
 import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
 import com.victor.EventDrop.filedrops.dtos.BatchDeleteResult;
 import com.victor.EventDrop.filedrops.dtos.BatchUploadResult;
@@ -19,11 +17,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Service
@@ -47,46 +45,10 @@ public class FileDropServiceImpl implements FileDropService {
      */
     @Override
     public FileDropResponseDto uploadFile(String roomCode, MultipartFile file) {
-        try{
-            String fileDropName = roomCode + "/" + file.getOriginalFilename();
-            InputStream stream = file.getInputStream();
-            long fileSize = file.getSize();
-            List<FileDrop> fileDrops = fileDropRepository.findByRoomCode(roomCode);
+        roomCode = roomCode.trim();
 
-            return fileDropUtils.validateFileUpload(file, fileDrops, fileSize)
-                    .thenComposeAsync(i -> {
-                        try {
-                            return fileDropStorageClient.uploadFile(fileDropName, file.getSize() , stream);
-                        } catch (IOException e) {
-                            log.info("Failed to upload file due to an IO Exception", e);
-                            throw new FileDropUploadException("Failed to upload file due to an IO Exception", e);
-                        }
-                    })
-                    .thenApplyAsync(blobUrl -> {
-                        try{
-                            UUID fileDropId = UUID.randomUUID();
-                            FileDrop fileDrop = FileDrop
-                                    .builder()
-                                    .fileId(fileDropId)
-                                    .originalFileName(file.getOriginalFilename())
-                                    .fileName(fileDropName)
-                                    .fileSize(fileSize)
-                                    .roomCode(roomCode)
-                                    .blobUrl(blobUrl)
-                                    .isDeleted(false)
-                                    .uploadedAt(LocalDateTime.now())
-                                    .build();
-
-                            FileDrop saved = fileDropRepository.save(fileDrop);
-                            return fileDropMapper.toResponseDto(saved);
-                        }catch (Exception e){
-                            log.error("An unexpected error occurred while trying to upload file drop: {}", fileDropName, e);
-                            throw new FileDropUploadException(String.format("An unexpected error occurred while trying to upload file drop: %s", fileDropName), e);
-                        }
-                    }, asyncTaskExecutor).join();
-        }catch (IOException e){
-            throw new FileDropUploadException("Failed to upload file due to an IO Exception", e);
-        }
+        List<FileDrop> fileDrops = fileDropRepository.findByRoomCode(roomCode);
+        return orchestrateFileUpload(file, roomCode, fileDrops);
     }
 
     /**
@@ -97,22 +59,22 @@ public class FileDropServiceImpl implements FileDropService {
      */
     @Override
     public BatchUploadResult uploadFiles(String roomCode, List<MultipartFile> files){
-
         log.info("Starting batch file upload. Upload count: {}", files.size());
 
         List<FileDrop> fileDrops = fileDropRepository.findByRoomCode(roomCode);
 
         fileDropUtils.validateBatchUpload(fileDrops, files);
 
+        //Extract unique files to prevent duplicates
+        files = fileDropUtils.extractUniqueFiles(files);
+
         List<FileDropResponseDto> successfulUploads = new CopyOnWriteArrayList<>();
         List<FileDropResponseDto> failedUploads = new CopyOnWriteArrayList<>();
 
-
-
         var uploadFutures = files.stream()
                 .map(file -> CompletableFuture.supplyAsync(() ->
-                        uploadFile(
-                                roomCode, file
+                        orchestrateFileUpload(
+                                 file, roomCode.trim(), fileDrops
                         ), asyncTaskExecutor)
                         .thenAccept(successfulUploads::add)
                         .exceptionally(throwable -> {
@@ -200,9 +162,7 @@ public class FileDropServiceImpl implements FileDropService {
             return new BatchDeleteResult(new ArrayList<>(), new ArrayList<>());
         }
 
-        List<FileDrop> fileDrops = StreamSupport.stream(
-                        fileDropRepository.findAllById(fileIds).spliterator(), false)
-                .toList();
+        List<FileDrop> fileDrops = (List<FileDrop>) fileDropRepository.findAllById(fileIds);
 
         List<String> deletedNow = new CopyOnWriteArrayList<>();
         List<String> markedDeleted = new CopyOnWriteArrayList<>();
@@ -220,7 +180,6 @@ public class FileDropServiceImpl implements FileDropService {
                         // Remove metadata from DB
                         fileDropRepository.deleteAll(fileDrops);
                         deletedNow.addAll(blobNames);
-
                     } catch (Exception e) {
                         log.error("Batch delete failed for room {}: {}", roomCode, e.getMessage(), e);
 
@@ -238,6 +197,68 @@ public class FileDropServiceImpl implements FileDropService {
                     return new BatchDeleteResult(new ArrayList<>(deletedNow), new ArrayList<>(markedDeleted));
                 }, asyncTaskExecutor)
                 .join();
+    }
+
+    /**
+     * Orchestrates a file upload and saves its metadata to the database.
+     * Uses async operations internally but blocks until completion to maintain security context.
+     *
+     * @param roomCode the room's unique code.
+     * @param file the file to upload.
+     * @param fileDrops the list of file drops for a room in redis
+     * @return a {@link FileDropResponseDto} for the completed upload operation.
+     */
+    public FileDropResponseDto orchestrateFileUpload(MultipartFile file, String roomCode, List<FileDrop> fileDrops){
+        try{
+            String originalFileName = file.getOriginalFilename();
+            String fileDropName = roomCode + "/" + originalFileName;
+            InputStream stream = file.getInputStream();
+            long fileSize = file.getSize();
+
+            return fileDropUtils.validateFileUpload(file, fileDrops, fileSize)
+                    .thenComposeAsync(i -> {
+                        try {
+                            return fileDropStorageClient.uploadFile(fileDropName, file.getSize() , stream);
+                        } catch (IOException e) {
+                            log.info("Failed to upload file due to an IO Exception", e);
+                            throw new FileDropUploadException("Failed to upload file due to an IO Exception", e);
+//                        } catch (CompletionException | AzureException e){
+//                            log.error("");
+//                            throw new FileDropAlreadyExistsException(String.format("Failed to upload %s because it already exists in your room", originalFileName));
+                        }
+                    })
+                    .thenApplyAsync(blobUrl -> {
+                        try{
+                            //This checks if a file with the same file name exists,
+                            // if it does, just fetch the file and mark it as not deleted
+                            if(!fileDropRepository.existsByFileName(fileDropName)){
+                                FileDrop saved = fileDropRepository.save(fileDropUtils.buildFileDrop(
+                                        roomCode, originalFileName, fileDropName, fileSize, blobUrl
+                                ));
+                                return fileDropMapper.toResponseDto(saved);
+                            }else {
+                                FileDrop fileDrop = fileDropRepository.findByFileName(fileDropName);
+
+                                if(fileDrop.isDeleted()){
+                                    fileDropRepository.save(fileDrop);
+                                    return fileDropMapper.toResponseDto(fileDrop);
+                                }else{
+                                    log.error("Failed to upload {} because it already exists in your room", originalFileName);
+                                    throw new FileDropAlreadyExistsException();
+                                }
+
+                            }
+                        }catch (FileDropAlreadyExistsException e){
+                            throw new FileDropAlreadyExistsException(String.format("Failed to upload %s because it already exists in your room", originalFileName), e);
+                        }catch (Exception e){
+                            log.error("An unexpected error occurred while trying to upload file drop: {}", fileDropName, e);
+                            throw new FileDropUploadException(String.format("An unexpected error occurred while trying to upload file drop: %s", fileDropName), e);
+                        }
+                    }, asyncTaskExecutor)
+                    .join();
+        }catch (IOException e){
+            throw new FileDropUploadException("Failed to upload file due to an IO Exception", e);
+        }
     }
 
     @Override

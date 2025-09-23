@@ -13,4 +13,7 @@ public interface FileDropRepository extends CrudRepository<FileDrop, UUID> {
 
     int countByRoomCode(String roomCode);
 
+    boolean existsByFileName(String fileDropName);
+
+    FileDrop findByFileName(String fileDropName);
 }

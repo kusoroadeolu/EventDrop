@@ -1,3 +1,4 @@
+
 class EventDropRoomManager {
     constructor() {
         this.baseUrl = window.location.origin;
@@ -18,6 +19,14 @@ class EventDropRoomManager {
         console.log('Initializing EventDrop Room Manager...');
         this.attachEventListeners();
         this.connectSSE();
+    }
+
+    /**
+     * Get username from URL parameters (passed from create/join page)
+     */
+    getUsername() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('username');
     }
 
     /**
@@ -123,10 +132,24 @@ class EventDropRoomManager {
     handleSSEError(error) {
         console.error('SSE connection error:', error);
 
-        if (this.eventSource.readyState === EventSource.CLOSED) {
-            console.log('SSE connection closed, attempting to reconnect...');
-            setTimeout(() => this.connectSSE(), 5000);
-        }
+        console.error('SSE connection error:', error);
+
+            // Check if the connection is closed.
+            if (this.eventSource.readyState === EventSource.CLOSED) {
+                console.log('SSE connection closed. Assuming room has expired or access is denied.');
+                this.showNotification('Room has expired or access denied. Redirecting...', 'error');
+
+                // Clean up and redirect the user.
+                this.cleanup();
+                setTimeout(() => {
+                    window.location.href = '/create.html';
+                }, 1000);
+            }
+
+//        if (this.eventSource.readyState === EventSource.CLOSED) {
+//            console.log('SSE connection closed, attempting to reconnect...');
+//            setTimeout(() => this.connectSSE(), 5000);
+//        }
     }
 
     /**
@@ -144,20 +167,29 @@ class EventDropRoomManager {
      * Update room information panel
      */
     updateRoomInfo(roomState) {
-        // Update room code (now in the main title position)
+        // Update room code (main title)
         const roomNameEl = document.querySelector('.room-name');
         if (roomNameEl && roomState.roomCode) {
             roomNameEl.textContent = roomState.roomCode;
         }
 
-        // Update room name (now in the first detail position)
-        const roomCodeEl = document.querySelector('.room-detail:first-child span');
+        // Update username (first detail)
+        const usernameEl = document.querySelector('#username-display');
+        if (usernameEl) {
+            const username = this.getUsername();
+            if (username) {
+                usernameEl.textContent = username;
+            }
+        }
+
+        // Update room name (second detail - room code section)
+        const roomCodeEl = document.querySelector('.room-detail:nth-child(2) span');
         if (roomCodeEl && roomState.roomName) {
             roomCodeEl.textContent = roomState.roomName;
         }
 
-        // Update expiration date
-        const expirationEl = document.querySelector('.room-detail:nth-child(2) span');
+        // Update expiration date (third detail)
+        const expirationEl = document.querySelector('.room-detail:nth-child(3) span');
         if (expirationEl && roomState.expiresAt) {
             const expireDate = new Date(roomState.expiresAt);
             expirationEl.textContent = `Expires on ${expireDate.toLocaleDateString('en-US', {
@@ -167,8 +199,8 @@ class EventDropRoomManager {
             })}`;
         }
 
-        // Update occupant count
-        const occupantEl = document.querySelector('.room-detail:nth-child(3) span');
+        // Update occupant count (fourth detail)
+        const occupantEl = document.querySelector('.room-detail:nth-child(4) span');
         if (occupantEl && roomState.occupantCount !== undefined) {
             occupantEl.textContent = `${roomState.occupantCount} people in this room`;
         }
@@ -343,6 +375,8 @@ class EventDropRoomManager {
      * Upload a single file
      */
     async uploadSingleFile(file) {
+        const uploadNotification = this.showUploadNotification(1);
+
         const formData = new FormData();
         formData.append('file', file);
 
@@ -353,6 +387,8 @@ class EventDropRoomManager {
                 credentials: 'include'
             });
 
+            this.removeUploadNotification();
+
             if (response.ok) {
                 const result = await response.json();
                 console.log('File uploaded successfully:', result);
@@ -361,6 +397,7 @@ class EventDropRoomManager {
                 await this.handleApiError(response, `Failed to upload ${file.name}`);
             }
         } catch (error) {
+            this.removeUploadNotification();
             console.error('Single file upload error:', error);
             this.showNotification(`Failed to upload ${file.name}`, 'error');
         }
@@ -370,6 +407,8 @@ class EventDropRoomManager {
      * Upload multiple files
      */
     async uploadMultipleFiles(files) {
+        const uploadNotification = this.showUploadNotification(files.length);
+
         const formData = new FormData();
         files.forEach(file => {
             formData.append('file', file); // Use 'file' to match @RequestParam("file")
@@ -381,6 +420,8 @@ class EventDropRoomManager {
                 body: formData,
                 credentials: 'include'
             });
+
+            this.removeUploadNotification();
 
             if (response.ok) {
                 const result = await response.json();
@@ -397,6 +438,7 @@ class EventDropRoomManager {
                 await this.handleApiError(response, 'Batch file upload failed');
             }
         } catch (error) {
+            this.removeUploadNotification();
             console.error('Batch file upload error:', error);
             this.showNotification('Batch file upload failed', 'error');
         }
@@ -427,6 +469,7 @@ class EventDropRoomManager {
             if (response.ok || response.status === 302) {
                 const result = await response.json();
                 console.log('Download response data:', result);
+                this.showNotification('Your download should start shortly', 'info')
 
                 if (result.downloadUrl) {
                     console.log('Redirecting to download URL:', result.downloadUrl);
@@ -565,10 +608,12 @@ class EventDropRoomManager {
                 errorMessage = "You are not authenticated. Please refresh the page and try again";
             } else if (response.status === 404) {
                 errorMessage = "Resource not found";
+            }else if (response.status === 409){
+                errorMessage = defaultMessage;
             } else if (response.status === 500) {
                 errorMessage = "Server error occurred. Please try again later";
             }else if (response.status === 410) {
-                    errorMessage = "This room has expired. Redirecting you back to room selection...";
+                    errorMessage = "This room has expired. Redirecting you back to create room page...";
                     this.showNotification(errorMessage, 'error');
                     // Clean up and redirect after showing the message
                     setTimeout(() => {
@@ -630,7 +675,7 @@ class EventDropRoomManager {
 
         container.appendChild(notification);
 
-        // Auto-remove after 5 seconds
+        // Auto-remove after 4 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.animation = 'slideOut 0.3s ease forwards';
@@ -640,7 +685,51 @@ class EventDropRoomManager {
                     }
                 }, 300);
             }
-        }, 5000);
+        }, 4000);
+    }
+
+    /**
+     * Show persistent upload notification that can be removed later
+     */
+    showUploadNotification(fileCount) {
+        const container = document.querySelector('.notifications-container');
+        if (!container) {
+            console.warn('Notifications container not found');
+            return null;
+        }
+
+        const notification = document.createElement('div');
+        notification.className = 'notification upload-notification';
+        notification.id = 'upload-notification';
+
+        const fileText = fileCount === 1 ? '1 file' : `${fileCount} files`;
+
+        notification.innerHTML = `
+            <i class="ri-upload-2-line"></i>
+            <span>Uploading ${fileText}...</span>
+        `;
+
+        // Style as info notification
+        notification.style.borderLeftColor = 'var(--primary)';
+        notification.querySelector('i').style.color = 'var(--primary)';
+
+        container.appendChild(notification);
+        return notification;
+    }
+
+    /**
+     * Remove upload notification
+     */
+    removeUploadNotification() {
+        const notification = document.getElementById('upload-notification');
+        if (notification && notification.parentNode) {
+            notification.style.animation = 'slideOut 0.3s ease forwards';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }
     }
 
     /**
@@ -682,3 +771,4 @@ window.addEventListener('beforeunload', () => {
         window.eventDropRoomManager.cleanup();
     }
 });
+

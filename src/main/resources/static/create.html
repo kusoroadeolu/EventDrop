@@ -7,107 +7,53 @@
     <title>EventDrop - Create or Join Room</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
     <style>
-        @font-face {
-            font-family: 'AlimamaShuHeiTi';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/AlimamaShuHeiTi-Bold.otf') format('opentype');
-            font-weight: bold;
-        }
-        
+
+
+
         @font-face {
             font-family: 'MiSans';
             src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Regular.ttf') format('truetype');
             font-weight: normal;
         }
-        
+
         @font-face {
             font-family: 'MiSans';
             src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf') format('truetype');
             font-weight: 500;
         }
-        
+
         @font-face {
             font-family: 'MiSans';
             src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf') format('truetype');
             font-weight: bold;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'MiSans', sans-serif;
             background-color: #f5f7fa;
             color: #333;
             line-height: 1.6;
-            width: 1440px;
             margin: 0 auto;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
         }
-        
-        /* Header Styles */
-        header {
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: relative;
-            width: 100%;
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-        }
-        
-        .logo {
-            font-family: 'AlimamaShuHeiTi', sans-serif;
-            font-size: 28px;
-            color: #3498db;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-        }
-        
-        .logo i {
-            margin-right: 8px;
-            font-size: 32px;
-        }
-        
-        nav ul {
-            display: flex;
-            list-style: none;
-        }
-        
-        nav ul li {
-            margin-left: 30px;
-        }
-        
-        nav ul li a {
-            color: #555;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-            font-size: 16px;
-        }
-        
-        nav ul li a:hover {
-            color: #3498db;
-        }
-        
+
         /* Main Content Styles */
         .main-content {
             padding: 60px 0;
             min-height: calc(100vh - 140px);
         }
-        
+
         .room-card {
             background-color: #fff;
             border-radius: 12px;
@@ -116,13 +62,13 @@
             margin: 0 auto;
             overflow: hidden;
         }
-        
+
         /* Tab Styles */
         .tabs {
             display: flex;
             border-bottom: 1px solid #eee;
         }
-        
+
         .tab {
             flex: 1;
             padding: 18px 0;
@@ -133,12 +79,12 @@
             transition: all 0.3s;
             position: relative;
         }
-        
+
         .tab.active {
             color: #3498db;
             font-weight: bold;
         }
-        
+
         .tab.active::after {
             content: '';
             position: absolute;
@@ -148,32 +94,32 @@
             height: 3px;
             background-color: #3498db;
         }
-        
+
         /* Form Styles */
         .tab-content {
             padding: 30px;
         }
-        
+
         .tab-pane {
             display: none;
         }
-        
+
         .tab-pane.active {
             display: block;
             animation: fadeIn 0.5s;
         }
-        
+
         .form-group {
             margin-bottom: 24px;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
             color: #555;
         }
-        
+
         .form-control {
             width: 100%;
             padding: 14px 16px;
@@ -183,29 +129,29 @@
             font-size: 16px;
             transition: border 0.3s;
         }
-        
+
         .form-control:focus {
             outline: none;
             border-color: #3498db;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
         }
-        
+
         .form-control.invalid {
             border-color: #e74c3c;
         }
-        
+
         .error-message {
             color: #e74c3c;
             font-size: 14px;
             margin-top: 6px;
             display: none;
         }
-        
+
         .error-message.visible {
             display: block;
             animation: slideDown 0.3s;
         }
-        
+
         .btn {
             display: block;
             width: 100%;
@@ -221,16 +167,16 @@
             transition: background-color 0.3s;
             margin-top: 10px;
         }
-        
+
         .btn:hover {
             background-color: #2980b9;
         }
-        
+
         .btn:disabled {
             background-color: #95c8ec;
             cursor: not-allowed;
         }
-        
+
         /* Footer Styles */
         footer {
             padding: 20px 0;
@@ -239,7 +185,7 @@
             border-top: 1px solid #eee;
             background-color: #fff;
         }
-        
+
         /* Animations */
         @keyframes fadeIn {
             from {
@@ -251,7 +197,7 @@
                 transform: translateY(0);
             }
         }
-        
+
         @keyframes slideDown {
             from {
                 opacity: 0;
@@ -263,19 +209,11 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="shared-header.js"></script>
 </head>
 <body>
-<header>
-    <div class="container">
-        <div class="header-content">
-            <a href="#" class="logo">
-                <i class="ri-cloud-line"></i>
-                EventDrop
-            </a>
-        </div>
-    </div>
-</header>
-
+<div id="header-placeholder" data-show-nav="true"></div>
 
 <div class="main-content">
     <div class="container">

@@ -1,0 +1,82 @@
+spring:
+  application:
+    name: EventDrop
+
+  redis:
+    cloud:
+      username: default
+      host: ${REDIS_HOST}
+      password: ${REDIS_PASSWORD}
+      port: 17398
+    other:
+      cleanup-cron: 0 0 2 * * *
+
+  rabbitmq:
+    prefetch-count: 5
+    reply-timeout: 10000
+    factory:
+      host: goose-01.rmq2.cloudamqp.com
+      username: maknhjim
+      virtual-host: maknhjim
+      port: 5671
+      password: ${RABBIT_PASSWORD}
+
+
+  cloud:
+    azure:
+      vault:
+        url: https://eventdropkv.vault.azure.net/
+      storage:
+        blob:
+          account-name: eventdrop112
+          account-key: ${AZURE_ACCOUNT_KEY}
+          connection-string: ${AZURE_CONNECTION_STRING}
+          endpoint: ${AZURE_BLOB_ENDPOINT}
+          container-name: eventdrop-uploads
+
+  logging:
+    level:
+      org.springframework.boot.autoconfigure: DEBUG
+      org.hibernate.engine.jdbc.env.internal.LobCreatorBuilderImpl: WARN
+      root: INFO
+
+  threads:
+    virtual:
+      enabled: true
+
+  thread-executor: virtual
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 2000MB
+
+
+room:
+  max-ttl-in-minutes: 1440
+  max-size: 30 #Max amount of people allowed in a room
+  file-count-threshold: 30
+  file-size-threshold: 2147483648 #Threshold in bytes
+  join:
+    queue-name: room-join-queue
+    routing-key: room-join-routing-key
+    exchange-name: room-join-exchange
+  leave:
+    queue-name: room-leave-queue
+    routing-key: room-leave-routing-key
+    exchange-name: room-leave-exchange
+  expiry:
+    queue-name: room-expiry-queue
+    exchange-name: room-expiry-exchange
+    routing-key:  room-expiry-routing-key
+
+cookies:
+  session:
+    secure: true
+    http-only: true
+    max-age: 3600
+
+
+rate-limit:
+  max-request-default: 30 #Per minute
+  max-request-strict: 10 #Per minute

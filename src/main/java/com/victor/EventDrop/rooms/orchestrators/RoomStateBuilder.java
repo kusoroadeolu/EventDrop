@@ -41,7 +41,6 @@ public class RoomStateBuilder {
                     0,
                     "This room has expired.",
                     LocalDateTime.now(),
-                    LocalDateTime.now(),
                     true
             );
         }
@@ -55,7 +54,6 @@ public class RoomStateBuilder {
                 occupantService.getOccupantCount(roomCode),
                 notification,
                 room.getExpiresAt(),
-                LocalDateTime.now(),
                 false
         );
     }

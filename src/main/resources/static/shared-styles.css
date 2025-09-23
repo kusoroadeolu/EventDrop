@@ -1,0 +1,57 @@
+/* UPDATE your shared-styles.css header section with this: */
+
+header {
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    position: relative;
+    z-index: 1000;
+}
+
+.header-content {
+    display: flex;
+    justify-content: flex-start; /* Changed from space-between */
+    align-items: center;
+    padding: 20px 40px; /* Added horizontal padding directly */
+    /* Remove max-width and margin: 0 auto to go edge-to-edge */
+}
+
+.logo {
+    font-family: 'AlimamaShuHeiTi', sans-serif;
+    font-size: 28px;
+    font-weight: bold;
+    color: #3498db;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.logo i {
+    margin-right: 8px;
+    font-size: 32px;
+}
+
+nav {
+    margin-left: auto; /* Pushes nav to the right */
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+}
+
+nav ul li {
+    margin-left: 30px;
+}
+
+nav ul li a {
+    color: #555;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+    font-size: 16px;
+}
+
+nav ul li a:hover {
+    color: #3498db;
+}

@@ -70,9 +70,6 @@ public class FileDrop {
 5. Azure lifecycle policy nukes everything after 1 day
 
 ### File Upload Quotas
-Had a race condition issue with batch uploads where multiple files could bypass quotas by checking limits simultaneously. 
-Fixed it by validating the entire batch as one unit instead of individual files.
-
 **Current limits:**
 - Max 30 files per room (prevents large SSE payloads from crashing clients)
 - Max 2GB total size per room (prevents abuse as free storage service)
@@ -134,9 +131,4 @@ Wrote comprehensive unit tests that cover the most common user actions/flows
 5. **Session-based auth** - No account friction, still provides role separation
 6. **Batch quota validation** - Fixes race condition without maintaining separate Redis counters
 
-
-## Future Optimizations(UX Based)
-- PWA features (coming soon)
-- Diff-based SSE (only if scale demands it)
-- Backdoor keys for owners to reclaim rooms and password protected rooms(will do this who knows when lol)
 Built this primarily for personal use but designed it to handle multiple users at a small scale. The architecture prioritizes reliability and simplicity over optimization - will add complexity only when usage demands it.

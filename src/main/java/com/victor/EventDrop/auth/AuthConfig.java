@@ -33,6 +33,8 @@ public class AuthConfig {
                 .authorizeHttpRequests(auth -> {
                         auth.requestMatchers("/").permitAll();
                         auth.requestMatchers("/favicon.ico").permitAll();
+                        auth.requestMatchers("/shared-header.js").permitAll();
+                        auth.requestMatchers("/shared-styles.css").permitAll();
                         auth.requestMatchers("/landing-page.html").permitAll();
                         auth.requestMatchers("/landing-page.js").permitAll();
                         auth.requestMatchers("/create-room.js").permitAll();

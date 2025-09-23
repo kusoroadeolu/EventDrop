@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // On success (201 CREATED)
-            window.location.href = 'rooms.html'; // Redirect to the room page
+            window.location.href = `/rooms.html?username=${encodeURIComponent(responseData.username)}`;
 
         } catch (error) {
             console.error('Failed to create room:', error);
@@ -168,7 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // On success (200 OK)
-            window.location.href = 'rooms.html'; // Redirect to the room page
+            window.location.href = `/rooms.html?username=${encodeURIComponent(responseData.username)}`;
+
 
         } catch (error) {
             console.error('Failed to join room:', error);

@@ -13,7 +13,6 @@ public record RoomStateDto(
         int occupantCount,
         String notification,
         LocalDateTime expiresAt,
-        LocalDateTime lastUpdated,
         boolean isExpired
 ) {
 }

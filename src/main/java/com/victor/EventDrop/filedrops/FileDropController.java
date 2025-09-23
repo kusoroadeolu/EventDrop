@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,8 +46,9 @@ public class FileDropController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<BatchUploadResult> uploadFiles(@AuthenticationPrincipal Occupant occupant, @RequestParam("file") List<MultipartFile> files) {
         var batchUploadResult = fileDropService.uploadFiles(occupant.getRoomCode(), files);
+
         fileDropService.publishRoomEvent(new RoomEvent(
-                occupant.getOccupantName() + " uploaded a file",
+                String.format("%s uploaded %d files", occupant.getOccupantName(), batchUploadResult.successfulUploads().size()),
                 LocalDateTime.now(),
                 RoomEventType.ROOM_BATCH_FILE_UPLOAD,
                 occupant.getRoomCode(),
@@ -76,7 +77,9 @@ public class FileDropController {
     public ResponseEntity<BatchDeleteResult> deleteFiles(@AuthenticationPrincipal Occupant occupant, @RequestBody List<String> fileIds) {
         List<UUID> uuids = fileIds.stream().map(String::trim).map(UUID::fromString).toList();
         var batchDto = fileDropService.deleteFiles(occupant.getRoomCode(), uuids);
-        String notification = uuids.size() > 1 ? occupant.getOccupantName() + " deleted multiple files" : occupant.getOccupantName() + " deleted a file";
+        String notification = uuids.size() > 1 ?
+                occupant.getOccupantName() + " deleted multiple files" : occupant.getOccupantName() + " deleted a file";
+
         fileDropService.publishRoomEvent(new RoomEvent(
                 notification,
                 LocalDateTime.now(),

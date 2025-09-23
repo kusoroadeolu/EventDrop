@@ -8,24 +8,21 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
     <style>
         @font-face {
-            font-family: 'AlibabaSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/AlibabaSans-Regular.otf') format('opentype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'AlibabaSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/AlibabaSans-Medium.otf') format('opentype');
-            font-weight: 500;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'AlibabaSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/Alibaba-PuHuiTi-Bold.otf') format('opentype');
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf') format('truetype');
             font-weight: bold;
-            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+        }
+
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf') format('truetype');
+            font-weight: bold;
         }
 
         * {
@@ -35,76 +32,18 @@
         }
 
         body {
-            font-family: 'AlibabaSans', sans-serif;
+            font-family: 'MiSans', sans-serif;
             line-height: 1.6;
             color: #333;
             background-color: #f9f9f9;
             overflow-x: hidden;
-            width: 1440px;
             margin: 0 auto;
         }
 
         .container {
             width: 100%;
-            max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
-        }
-
-        /* Header Styles */
-        header {
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 1440px;
-            z-index: 1000;
-        }
-
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            color: #3498db;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-        }
-
-        .logo i {
-            margin-right: 10px;
-            font-size: 32px;
-        }
-
-        nav ul {
-            display: flex;
-            list-style: none;
-        }
-
-        nav ul li {
-            margin-left: 30px;
-        }
-
-        nav ul li a {
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            font-size: 16px;
-            transition: color 0.3s ease;
-        }
-
-        nav ul li a:hover {
-            color: #3498db;
         }
 
         /* Hero Section */
@@ -158,6 +97,7 @@
             border-radius: 50px;
             font-size: 18px;
             font-weight: 500;
+            font-family: 'MiSans', sans-serif; /* ADD THIS LINE */
             text-decoration: none;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
@@ -235,7 +175,7 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .header-container {
+            .header-content {
                 flex-direction: column;
                 padding: 15px;
             }
@@ -311,17 +251,12 @@
             opacity: 1;
         }
     </style>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="shared-header.js"></script>
 </head>
 <body>
-<!-- Header -->
-<header>
-    <div class="header-container">
-        <a href="#" class="logo">
-            <i class="ri-cloud-line"></i>
-            EventDrop
-        </a>
-    </div>
-</header>
+
+<div id="header-placeholder" data-show-nav="true"></div>
 
 <!-- Hero Section -->
 <section class="hero">
@@ -370,3 +305,4 @@
 <script src="landing-page.js"></script>
 </body>
 </html>
+

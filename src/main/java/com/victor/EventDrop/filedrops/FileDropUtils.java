@@ -10,8 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +48,18 @@ public class FileDropUtils {
                     .reduce(0L, Long::sum
                     );
         }, asyncTaskExecutor);
+    }
+
+    /**
+     * Removes non-unique files from a list(filtered by names).
+     *
+     * @param files the files given in the list
+     * @return a list of unique files
+     */
+    public List<MultipartFile> extractUniqueFiles(List<MultipartFile> files){
+        Map<String, MultipartFile> multipartFileMap =
+                files.stream().collect(Collectors.toMap(MultipartFile::getOriginalFilename, f -> f));
+        return multipartFileMap.values().stream().toList();
     }
 
 
@@ -102,5 +118,20 @@ public class FileDropUtils {
             log.info("Cannot upload these files because they will exceed this room's file count threshold of {} files", roomFileCountThreshold);
             throw new FileDropThresholdExceededException(String.format("Cannot upload these files because they will exceed this room's file count threshold of %s files", roomFileCountThreshold));
         }
+    }
+
+    public FileDrop buildFileDrop(String roomCode, String originalFileName, String fileDropName, long fileSize, String blobUrl){
+        UUID fileDropId = UUID.randomUUID();
+        return FileDrop
+                .builder()
+                .fileId(fileDropId)
+                .originalFileName(originalFileName)
+                .fileName(fileDropName)
+                .fileSize(fileSize)
+                .roomCode(roomCode)
+                .blobUrl(blobUrl)
+                .isDeleted(false)
+                .uploadedAt(LocalDateTime.now())
+                .build();
     }
 }

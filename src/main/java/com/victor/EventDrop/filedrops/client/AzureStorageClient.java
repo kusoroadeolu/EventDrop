@@ -7,6 +7,8 @@ import com.azure.storage.blob.batch.BlobBatchClient;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.victor.EventDrop.exceptions.AzureException;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.task.AsyncTaskExecutor;
@@ -39,6 +41,12 @@ public class AzureStorageClient implements FileDropStorageClient {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 BlobClient client = blobContainerClient.getBlobClient(fileName);
+
+                if(client.exists()){
+                    log.error("{} already exists on azure", fileName);
+                    return client.getBlobUrl();
+                }
+
                 log.info("Attempting to upload file: {} into azure blob storage", fileName);
                  client.upload(inputStream, sizeInBytes, true);
                 log.info("Successfully uploaded file: {} into azure blob storage", fileName);
@@ -91,7 +99,9 @@ public class AzureStorageClient implements FileDropStorageClient {
     }
 
     @Override
-    public void deleteFiles(List<String> blobNames){
+    public void deleteFiles(@NotNull List<String> blobNames){
+        if(blobNames.isEmpty())return;
+
         try{
             log.info("Attempting batch delete for {} blobs", blobNames.size());
             BlobBatch batch = blobBatchClient.getBlobBatch();
@@ -102,10 +112,13 @@ public class AzureStorageClient implements FileDropStorageClient {
                 }
             });
             blobBatchClient.submitBatch(batch);
-
             log.info("Successfully submitted batch delete for {} blobs", blobNames.size());
 
-        }catch (Exception e){
+        }catch (UnsupportedOperationException e){
+            log.info("Cannot delete this blob because it doesn't exist again");
+            //Don't throw an ex, let the operation finish successfully
+        }
+        catch (Exception e){
             log.error("Failed to perform batch delete for {} blobs", blobNames.size(), e);
             throw new AzureException("Batch delete failed for blobs", e);
         }

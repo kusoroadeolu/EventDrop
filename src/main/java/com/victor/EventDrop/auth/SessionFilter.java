@@ -46,23 +46,13 @@ public class SessionFilter extends OncePerRequestFilter {
             return;
         }
 
-
         if(authentication != null && authentication.isAuthenticated()){
             log.info("User is already authenticated");
             filterChain.doFilter(request, response);
             return;
         }
 
-        String sessionId = null;
-        Cookie[] cookies = request.getCookies();
-        if(cookies != null){
-            for (Cookie cookie : request.getCookies()){
-                if(cookie != null && cookie.getName().equals("SESSION_ID")){
-                    sessionId = cookie.getValue();
-                    break;
-                }
-            }
-        }
+        String sessionId = extractSessionIdFromCookie(request);
 
         if(sessionId == null || sessionId.isEmpty()){
             log.info("No session ID found or invalid format. Denying request.");
@@ -84,19 +74,17 @@ public class SessionFilter extends OncePerRequestFilter {
             if(!roomRepository.existsByRoomCode(occupant.getRoomCode())){
                 log.info("Room: {} does not exist again", occupant.getRoomCode());
                 SecurityContextHolder.clearContext();
-                filterChain.doFilter(request, response);
-                return;
-            }
 
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(occupant, null , List.of(occupant.getOccupantRole()));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+            }else{
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(occupant, null , List.of(occupant.getOccupantRole()));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
 
-            //Refresh the session
-            redisTemplate.expire(sessionId, Duration.ofMinutes(5));
-
-            if(!"/rooms".equals(path)){
-                log.info("Successfully authenticated user and refreshed session ID.");
+                if(!"/rooms".equals(path)){
+                    //Refresh the session
+                    redisTemplate.expire("occupant:" + sessionId, Duration.ofMinutes(5));
+                    log.info("Successfully authenticated user and refreshed session ID.");
+                }
             }
 
         }else{
@@ -105,6 +93,18 @@ public class SessionFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String extractSessionIdFromCookie(HttpServletRequest request){
+        Cookie[] cookies = request.getCookies();
+        if(cookies != null){
+            for (Cookie cookie : request.getCookies()){
+                if(cookie != null && cookie.getName().equals("SESSION_ID")){
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 
 }

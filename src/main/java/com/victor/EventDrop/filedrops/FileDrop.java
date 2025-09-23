@@ -24,6 +24,7 @@ public class FileDrop {
     @Indexed
     private UUID fileId;
     private String originalFileName;
+    @Indexed
     private String fileName;
 
     @Indexed

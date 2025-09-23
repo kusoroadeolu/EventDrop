@@ -162,3 +162,7 @@ The backend returns proper HTTP status codes. Common ones:
 
 Frontend should handle these and show appropriate messages.
 
+## Future Optimizations(UX Based)
+- PWA features (coming soon)
+- Diff-based SSE (only if scale demands it)
+- Backdoor keys for owners to reclaim rooms and password protected rooms(will do this who knows when lol)

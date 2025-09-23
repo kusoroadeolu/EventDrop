@@ -242,7 +242,8 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public void deleteRoom(@NotNull Occupant occupant){
         leaveRoom(occupant);
-        redisTemplate.expire(occupant.getRoomCode(), Duration.ofSeconds(5));
+        String roomKey = "room:" + occupant.getRoomCode();
+        redisTemplate.expire(roomKey, Duration.ofSeconds(5));
     }
 
     /**

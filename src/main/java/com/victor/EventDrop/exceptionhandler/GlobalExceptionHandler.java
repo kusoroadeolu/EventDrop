@@ -48,7 +48,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             RoomTtlExceededException.class,
             RoomFullException.class,
-            FileDropThresholdExceededException.class
+            FileDropThresholdExceededException.class,
+            FileDropAlreadyExistsException.class
     })
     public ResponseEntity<ApiError> handleConflictExceptions(Exception e) {
         ApiError apiError = new ApiError(409, e.getMessage(), LocalDateTime.now());
