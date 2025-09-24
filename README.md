@@ -175,9 +175,9 @@ The backend returns proper HTTP status codes. Common ones:
 - 500: Something broke server-side
 
 Frontend should handle these and show appropriate messages.
+The frontend is also served from spring boot
 
 ## Future Optimizations(UX Based)
-- PWA features (coming soon)
 - Backdoor keys for owners to reclaim rooms and password protected rooms(will do this who knows when lol)
 
 

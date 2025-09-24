@@ -2,7 +2,7 @@
 This file includes the most improvements and fixes I made to event drop
 Command to deploy jar to azure using CLI:
 az webapp config appsettings set --resource-group "EventDrop-RG" --name "eventdrop1" --settings "SPRING_PROFILES_ACTIVE=prod"
-az webapp deploy --resource-group EventDrop-RG --name eventdrop --src-path "C:\Users\eastw\Git Projects\Personal\EventDrop\target\EventDrop-0.0.1-SNAPSHOT.jar" --type jar
+az webapp deploy --resource-group EventDrop-RG --name eventdrop1 --src-path "C:\Users\eastw\Git Projects\Personal\EventDrop\target\EventDrop-0.0.1-SNAPSHOT.jar" --type jar
 
 ### 9/18/25
 #### Fixed
@@ -36,7 +36,7 @@ Made multiple UI and UX improvements:
 #### Added
 UI/UX improvements
 + Made mobile responsive additions to all pages
-+ 
++ Feat: Made the app a pwa for 
 
 #### Fixed 
 + Fixed a race condition where multiple events tried to emit at once causing an sse disconnect and keeping the user in the room. 

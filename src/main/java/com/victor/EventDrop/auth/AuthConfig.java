@@ -39,6 +39,7 @@ public class AuthConfig {
                         auth.requestMatchers("/landing-page.js").permitAll();
                         auth.requestMatchers("/create-room.js").permitAll();
                         auth.requestMatchers("/create.html").permitAll();
+                        auth.requestMatchers("/manifest.json", "/sw.js", "/pwa-install.js", "/icons/**").permitAll();
                         auth.requestMatchers(HttpMethod.GET, "/metrics").permitAll();
                         auth.requestMatchers("/rooms/join").permitAll();
                         auth.requestMatchers("/rooms/create").permitAll();
