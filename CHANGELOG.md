@@ -31,3 +31,8 @@ Made multiple UI and UX improvements:
 + Fixed an issue where users got stuck in rooms after they expired
 + Fixed header inconsistencies and layout differences between pages
 + Fixed room details layout to properly display all information (username, roomcode, expires at, occupant count)
+
+### 9/24/25
+#### Added
+UI/UX improvements
++ Made mobile responsive additions to all pages

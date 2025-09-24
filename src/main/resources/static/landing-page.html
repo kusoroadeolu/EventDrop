@@ -175,48 +175,32 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                padding: 15px;
-            }
+        /* Remove all header-related styles, keep only the page content styles */
 
-            .logo {
-                margin-bottom: 15px;
-            }
-
-            nav ul {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            nav ul li {
-                margin: 10px 0;
-            }
-
-            .hero {
-                padding: 120px 0 80px;
-            }
-
-            .hero h1 {
-                font-size: 36px;
-            }
-
-            .hero p {
-                font-size: 18px;
-            }
-
-            .stats-container {
-                flex-direction: column;
-            }
-
-            .stat-box {
-                margin-bottom: 30px;
-            }
-
-            .stat-box:not(:last-child)::after {
-                display: none;
-            }
+        .hero {
+            padding: 120px 0 80px;
         }
+
+        .hero h1 {
+            font-size: 36px;
+        }
+
+        .hero p {
+            font-size: 18px;
+        }
+
+        .stats-container {
+            flex-direction: column;
+        }
+
+        .stat-box {
+            margin-bottom: 30px;
+        }
+
+        .stat-box:not(:last-child)::after {
+            display: none;
+        }
+    }
 
         /* Animations */
         @keyframes fadeInUp {

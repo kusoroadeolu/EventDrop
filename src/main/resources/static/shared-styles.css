@@ -1,4 +1,4 @@
-/* UPDATE your shared-styles.css header section with this: */
+
 /*shared-styles.css file*/
 header {
     background-color: #fff;
@@ -13,11 +13,11 @@ header {
     justify-content: flex-start; /* Changed from space-between */
     align-items: center;
     padding: 20px 40px; /* Added horizontal padding directly */
-    /* Remove max-width and margin: 0 auto to go edge-to-edge */
+
 }
 
 .logo {
-    font-family: 'AlimamaShuHeiTi', sans-serif;
+    font-family: 'MiSans', sans-serif;
     font-size: 28px;
     font-weight: bold;
     color: #3498db;
@@ -56,3 +56,84 @@ nav ul li a:hover {
     color: #3498db;
 }
 
+
+/* Mobile styles for header */
+@media (max-width: 768px) {
+    .header-content {
+        padding: 15px 20px;
+        /* Remove flex-wrap to prevent wrapping */
+        justify-content: space-between; /* Ensure proper spacing */
+    }
+
+    .logo {
+        font-size: 22px; /* Smaller to give more space for nav */
+        flex-shrink: 0; /* Prevent logo from shrinking */
+    }
+
+    .logo i {
+        font-size: 26px;
+        margin-right: 5px;
+    }
+
+    nav {
+        margin-left: auto;
+        flex-shrink: 0; /* Prevent nav from shrinking */
+    }
+
+    nav ul li {
+        margin-left: 15px; /* Reduce spacing to fit better */
+    }
+
+    nav ul li a {
+        font-size: 14px; /* Smaller text to fit */
+        white-space: nowrap; /* Prevent text wrapping */
+    }
+}
+
+/* Small mobile - keep horizontal but make even more compact */
+@media (max-width: 480px) {
+    .header-content {
+        padding: 12px 15px; /* Less padding to give more space */
+    }
+
+    .logo {
+        font-size: 20px; /* Even smaller logo */
+    }
+
+    .logo i {
+        font-size: 24px;
+        margin-right: 4px;
+    }
+
+    nav ul li {
+        margin-left: 12px; /* Tighter spacing */
+    }
+
+    nav ul li a {
+        font-size: 13px; /* Smaller nav text */
+    }
+}
+
+/* Very small screens - ultra compact but still horizontal */
+@media (max-width: 380px) {
+    .header-content {
+        padding: 10px 12px;
+    }
+
+    .logo {
+        font-size: 18px;
+    }
+
+    .logo i {
+        font-size: 22px;
+        margin-right: 3px;
+    }
+
+    nav ul li {
+        margin-left: 10px;
+    }
+
+    nav ul li a {
+        font-size: 12px;
+    }
+}

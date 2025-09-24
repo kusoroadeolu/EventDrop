@@ -1,0 +1,387 @@
+/* rooms-mobile.css */
+/* Mobile Responsive Styles for Rooms Page */
+
+/* ============ HEADER MOBILE FIXES ============ */
+@media (max-width: 768px) {
+    /* Ensure header stays fixed and responsive */
+    header {
+        position: relative;
+        z-index: 1001; /* Higher than notifications */
+        width: 100%;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-content {
+        padding: 15px 20px !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .logo {
+        font-size: 22px !important;
+        flex-shrink: 0 !important;
+        font-family: 'MiSans', sans-serif !important; /* Use consistent font */
+        font-weight: bold !important;
+    }
+
+    .logo i {
+        font-size: 26px !important;
+        margin-right: 5px !important;
+    }
+
+    nav {
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    nav ul {
+        display: flex !important;
+        list-style: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    nav ul li {
+        margin-left: 15px !important;
+    }
+
+    nav ul li a {
+        font-size: 14px !important;
+        white-space: nowrap !important;
+        font-family: 'MiSans', sans-serif !important;
+        font-weight: 500 !important;
+        color: #555 !important;
+        text-decoration: none !important;
+        transition: color 0.3s !important;
+    }
+
+    nav ul li a:hover {
+        color: #3498db !important;
+    }
+
+    /* Room Info Panel - adjust top spacing */
+    .room-info {
+        padding: 15px 20px;
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+        margin-top: 0; /* Remove any top margin that might interfere */
+    }
+
+    .room-name {
+        font-size: 20px;
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+
+    .room-details {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
+    .room-detail {
+        font-size: 13px;
+        padding: 5px 10px;
+        flex-shrink: 0;
+    }
+
+    /* Main Content - Stack columns vertically */
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 20px 15px;
+    }
+
+    .left-column, .right-column {
+        min-width: 0; /* Allows columns to shrink below their intrinsic size */
+    }
+
+    /* Left Column */
+    .left-column {
+        gap: 20px;
+    }
+
+    /* Upload Section */
+    .upload-section,
+    .room-controls {
+        padding: 20px 15px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+
+    .owner-badge {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+
+    .upload-buttons,
+    .control-buttons {
+        gap: 12px;
+    }
+
+    .btn {
+        padding: 14px 16px;
+        font-size: 14px;
+        min-height: 48px; /* Better touch target */
+        width: 100%; /* This makes the buttons responsive */
+    }
+
+    /* Files Section */
+    .files-section {
+        padding: 20px 15px;
+    }
+
+    /* ============ RESPONSIVE TABLE FIXES ============ */
+    /* Remove horizontal scrolling and make table truly responsive */
+    .files-table-wrapper {
+        overflow-x: visible !important;
+        -webkit-overflow-scrolling: auto !important;
+        border-radius: var(--border-radius);
+        margin-top: 15px;
+    }
+
+    .files-table {
+        width: 100% !important;
+        min-width: auto !important; /* Remove the min-width constraint */
+        table-layout: fixed !important; /* This makes columns respect width percentages */
+        font-size: 14px;
+    }
+
+    /* Set responsive column widths */
+    .files-table th:nth-child(1), /* File Name */
+    .files-table td:nth-child(1) {
+        width: 40% !important;
+        min-width: 0 !important;
+        position: static !important; /* Remove sticky positioning */
+        box-shadow: none !important;
+        background-color: transparent !important;
+    }
+
+    .files-table th:nth-child(2), /* Size */
+    .files-table td:nth-child(2) {
+        width: 20% !important;
+    }
+
+    .files-table th:nth-child(3), /* Upload Time */
+    .files-table td:nth-child(3) {
+        width: 25% !important;
+    }
+
+    .files-table th:nth-child(4), /* Actions */
+    .files-table td:nth-child(4) {
+        width: 15% !important;
+    }
+
+    /* Make file names wrap properly */
+    .file-name {
+        max-width: none !important;
+        white-space: normal !important;
+    }
+
+    .file-name span {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        word-break: break-word !important;
+        line-height: 1.3 !important;
+        display: block !important;
+    }
+
+    /* Adjust padding and font size for mobile */
+    .files-table th,
+    .files-table td {
+        padding: 8px 4px !important;
+        white-space: normal !important; /* Allow text wrapping */
+    }
+
+    /* Make sure first column header gets proper background */
+    .files-table th:first-child {
+        background-color: var(--gray-light) !important;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+        gap: 4px !important;
+        flex-wrap: wrap !important;
+    }
+
+    .btn-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 14px !important;
+    }
+
+    /* Notifications - adjust position to account for header */
+    .notifications-container {
+        top: 90px !important; /* Increased to account for header height */
+        right: 10px;
+        left: 10px;
+        width: auto;
+        z-index: 1000; /* Below header */
+    }
+
+    .notification {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+
+    /* Footer */
+    footer {
+        margin-top: 20px;
+        padding: 15px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    /* ============ SMALLER MOBILE HEADER FIXES ============ */
+    .header-content {
+        padding: 12px 15px !important;
+    }
+
+    .logo {
+        font-size: 20px !important;
+    }
+
+    .logo i {
+        font-size: 24px !important;
+        margin-right: 4px !important;
+    }
+
+    nav ul li {
+        margin-left: 12px !important;
+    }
+
+    nav ul li a {
+        font-size: 13px !important;
+    }
+
+    /* Even smaller screens */
+    .room-info {
+        padding: 12px 15px;
+    }
+
+    .room-name {
+        font-size: 18px;
+    }
+
+    .room-details {
+        flex-wrap: wrap;
+    }
+
+    .room-detail {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+
+    .main-content {
+        padding: 15px 10px;
+        gap: 15px;
+    }
+
+    .upload-section,
+    .room-controls,
+    .files-section {
+        padding: 15px 12px;
+    }
+
+    .section-title {
+        font-size: 15px;
+    }
+
+    .btn {
+        padding: 12px 14px;
+        font-size: 13px;
+    }
+
+    .notifications-container {
+        top: 80px !important;
+        right: 5px;
+        left: 5px;
+    }
+}
+
+/* ============ ULTRA SMALL SCREENS ============ */
+@media (max-width: 380px) {
+    .header-content {
+        padding: 10px 12px !important;
+    }
+
+    .logo {
+        font-size: 18px !important;
+    }
+
+    .logo i {
+        font-size: 22px !important;
+        margin-right: 3px !important;
+    }
+
+    nav ul li {
+        margin-left: 10px !important;
+    }
+
+    nav ul li a {
+        font-size: 12px !important;
+    }
+}
+
+/* Remove the horizontal scroll indicator since we're making table responsive */
+@media (max-width: 640px) and (min-width: 481px) {
+    .files-table-wrapper {
+        position: relative;
+    }
+
+    .files-table-wrapper::after {
+        display: none !important; /* Hide scroll indicator */
+    }
+}
+
+/* ============ ADDITIONAL MOBILE IMPROVEMENTS ============ */
+@media (max-width: 768px) {
+    /* Ensure consistent font family throughout */
+    * {
+        font-family: 'MiSans', sans-serif !important;
+    }
+
+    /* Better touch targets */
+    .copy-btn {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Prevent horizontal overflow */
+    body {
+        overflow-x: hidden;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+
+    /* Room code truncation on small screens */
+    #room-code-text {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Better notification positioning */
+    .notification {
+        margin-bottom: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        max-width: calc(100vw - 20px);
+        word-wrap: break-word;
+    }
+}

@@ -1,6 +1,9 @@
 package com.victor.EventDrop.filedrops;
 
-import com.victor.EventDrop.exceptions.*;
+import com.victor.EventDrop.exceptions.FileDropAlreadyExistsException;
+import com.victor.EventDrop.exceptions.FileDropDownloadException;
+import com.victor.EventDrop.exceptions.FileDropUploadException;
+import com.victor.EventDrop.exceptions.NoSuchFileDropException;
 import com.victor.EventDrop.filedrops.client.FileDropStorageClient;
 import com.victor.EventDrop.filedrops.dtos.BatchDeleteResult;
 import com.victor.EventDrop.filedrops.dtos.BatchUploadResult;
@@ -17,12 +20,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Service
 @Slf4j
@@ -34,6 +37,7 @@ public class FileDropServiceImpl implements FileDropService {
     private final FileDropUtils fileDropUtils;
     private final AsyncTaskExecutor asyncTaskExecutor;
     private final ApplicationEventPublisher applicationEventPublisher;
+
 
     /**
      * Uploads a file and saves its metadata to the database.
