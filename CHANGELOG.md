@@ -36,6 +36,7 @@ Made multiple UI and UX improvements:
 #### Added
 UI/UX improvements
 + Made mobile responsive additions to all pages
++ 
 
 #### Fixed 
 + Fixed a race condition where multiple events tried to emit at once causing an sse disconnect and keeping the user in the room. 

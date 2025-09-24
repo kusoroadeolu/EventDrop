@@ -225,6 +225,7 @@
         left: 10px;
         width: auto;
         z-index: 1000; /* Below header */
+        align-items: flex-end; /* <<< ADD THIS LINE */
     }
 
     .notification {
@@ -375,6 +376,15 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .notifications-container {
+            top: 90px !important; /* Increased to account for header height */
+            right: 10px;
+            left: 10px;
+            width: auto;
+            z-index: 1000; /* Below header */
+            align-items: flex-end; /* <<< ADD THIS LINE */
     }
 
     /* Better notification positioning */
