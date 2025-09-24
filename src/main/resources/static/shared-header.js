@@ -1,4 +1,4 @@
-// Create a new file: shared-header.js
+//shared-header.js
 class SharedHeader {
     static render(showNav = false) {
         return `
@@ -30,17 +30,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-
-/* Then in each HTML file, replace the header with: */
-//<!-- Landing page: -->
-//<div id="header-placeholder" data-show-nav="true"></div>
-//
-//<!-- Create/Join page: -->
-//<div id="header-placeholder" data-show-nav="false"></div>
-//
-//<!-- Rooms page: -->
-//<div id="header-placeholder" data-show-nav="false"></div>
-//
-///* And include these in each HTML head: */
-//<link rel="stylesheet" href="shared-styles.css">
-//<script src="shared-header.js"></script>
