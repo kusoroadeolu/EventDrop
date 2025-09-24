@@ -1,6 +1,7 @@
 package com.victor.EventDrop.rooms.config;
 
 import com.victor.EventDrop.rooms.configproperties.*;
+import com.victor.EventDrop.rooms.orchestrators.RoomStateDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.*;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.SecureRandom;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * RabbitMQ configuration for room-related events.
@@ -74,8 +76,6 @@ public class RoomConfig {
     }
 
 
-
-
     /**
      * Creates a durable exchange for room expiry events.
      *
@@ -112,5 +112,18 @@ public class RoomConfig {
     public ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters(){
         return new ConcurrentHashMap<>();
     }
+
+    /**
+     * A Hash map meant to handle the publishing of room events to the sse to prevent race conditions with the SSE
+     * @return A thread safe hashmap
+     *
+     * */
+    @Bean
+    public ConcurrentHashMap<String, ConcurrentLinkedDeque<RoomStateDto>> roomEventHashMap(){
+        return new ConcurrentHashMap<>();
+    }
+
+
+
 
 }

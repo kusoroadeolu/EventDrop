@@ -36,3 +36,8 @@ Made multiple UI and UX improvements:
 #### Added
 UI/UX improvements
 + Made mobile responsive additions to all pages
+
+#### Fixed 
++ Fixed a race condition where multiple events tried to emit at once causing an sse disconnect and keeping the user in the room. 
+Averted this by adding a queue based implementation, whereby events can only be emitted one at a time. Tradeoff is that events arent async anymore
+but the frontend state is less prone to errors

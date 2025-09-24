@@ -76,7 +76,7 @@ public class RoomController {
             roomEmitterHandler.removeEmitter(roomCode, sessionId);
         });
 
-        roomEventListener.emitRoomStateOnLogin(emitter, roomCode, sessionId);
+        roomEventListener.emitRoomStateOnRoomJoin(emitter, roomCode, sessionId);
 
         return emitter;
     }

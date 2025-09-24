@@ -5,9 +5,9 @@ import com.victor.EventDrop.rooms.configproperties.RoomExpiryConfigProperties;
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import com.victor.EventDrop.rooms.events.RoomEventType;
 import com.victor.EventDrop.rooms.events.RoomExpiryEvent;
+import com.victor.EventDrop.rooms.orchestrators.RoomStateDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * Listens for Redis key expiration events to handle room cleanup.
@@ -31,6 +33,7 @@ public class RoomExpiryListener {
     private final RoomExpiryConfigProperties roomExpiryConfigProperties;
     private final RoomEmitterHandler roomEmitterHandler;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ConcurrentHashMap<String, ConcurrentLinkedDeque<RoomStateDto>> roomEventHashMap;
 
     /**
      * Handles the expiration of a room key in Redis.
@@ -44,10 +47,11 @@ public class RoomExpiryListener {
         String roomCode = new String(expiredEventId, StandardCharsets.UTF_8);
 
         //Since room codes are strings and not UUIDs, return
-        if (roomCode.length() > 8){
+        if (roomCode.contains("#") || roomCode.length() > 8){
             return;
         }
 
+        handleQueueOnRoomExpiry(roomCode);
         //Send the room event to immediately disconnect users
         applicationEventPublisher.publishEvent(new RoomEvent(
                 "Room " + roomCode + " has expired",
@@ -58,8 +62,8 @@ public class RoomExpiryListener {
         ));
 
         log.info("Handling expired room: {}", roomCode);
-        roomEmitterHandler.removeRoomEmitters(roomCode);
 
+        roomEmitterHandler.removeRoomEmitters(roomCode);
         try{
             roomService.deleteByRoomCode(roomCode);
 
@@ -73,6 +77,25 @@ public class RoomExpiryListener {
         } catch (Exception e){
             log.error("Failed to handle room expiry for room with code: {}. Cause: {}", roomCode, e.getMessage(), e);
         }
+
+    }
+
+
+    //Handles the operations on a queue when the room expires to prevent any race conditions
+    private void handleQueueOnRoomExpiry(String roomCode){
+        Queue<RoomStateDto> queue = roomEventHashMap.get(roomCode);
+        //Ensure no thread can write/read to the queue
+        if(queue != null){
+            synchronized (queue){
+                roomEventHashMap.remove(roomCode);
+
+                if(!queue.isEmpty()){
+                    //Clear all data in the queue
+                    queue.clear();
+                }
+            }
+        }
+
 
     }
 }

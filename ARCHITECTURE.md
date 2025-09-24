@@ -48,6 +48,8 @@ The system uses a hybrid event-driven approach:
 
 - **Spring ApplicationEventPublisher (in-process events):**  
   Used for lightweight, synchronous events like incrementing metrics or pushing updates to clients via SSE.  
+  Queue based implementation when streaming events, 
+  to prevent race conditions causing the SSE to disconnect when it tries to stream multiple events at once
   This avoids broker overhead when speed matters.
 
 - **Why both?**  

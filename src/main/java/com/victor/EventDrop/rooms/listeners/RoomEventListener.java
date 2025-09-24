@@ -11,12 +11,15 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
 @Slf4j
@@ -26,6 +29,7 @@ public class RoomEventListener
 
     private final RoomStateBuilder roomStateBuilder;
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters;
+    private final ConcurrentHashMap<String, ConcurrentLinkedDeque<RoomStateDto>> roomEventHashMap;
     private final AsyncTaskExecutor asyncTaskExecutor;
 
     /**
@@ -39,39 +43,82 @@ public class RoomEventListener
     @EventListener
     public void listen(RoomEvent roomEvent){
 
+        //Just ignore room create or download events, these are used for analytics
         if(roomEvent.roomEventType() == RoomEventType.ROOM_CREATE
                 || roomEvent.roomEventType() == RoomEventType.ROOM_FILE_DOWNLOAD){
             return;
         }
 
-        RoomStateDto roomStateDto =
-            roomStateBuilder.get(roomEvent.roomCode(), roomEvent.notification());
+        String roomCode = roomEvent.roomCode();
 
-        ConcurrentHashMap<String, SseEmitter> roomEmitters = sseEmitters.get(roomEvent.roomCode());
-        if (roomEmitters != null){
-            roomEmitters.forEach((sessionId, emitter) -> {
-                asyncTaskExecutor.execute(() -> {
-                    try {
-                        emitter.send(roomStateDto);
-                        log.info("Sent message to session {} in room {}", sessionId, roomEvent.roomCode());
-                    } catch (IOException e) {
-                        log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomEvent.roomCode(), e.getMessage());
-                        emitter.completeWithError(e);
-                    } catch (AccessDeniedException e){
-                        log.error("Authorization error occurred during streaming. Terminating gracefully...", e);
-                        emitter.completeWithError(e);
-                    }catch (Exception e){
-                        log.error("Unexpected error occurred during streaming. Terminating gracefully...", e);
-                        emitter.completeWithError(e);
-                    }
-                });
-            });
-        }else{
-            log.info("No active sessions found for room: {}", roomEvent.roomCode());
+        RoomStateDto roomStateDto =
+            roomStateBuilder.get(roomCode, roomEvent.notification());
+
+
+        //Map each room to their own queue if it doesnt exist
+        roomEventHashMap.computeIfAbsent(roomCode, k -> new ConcurrentLinkedDeque<>());
+
+        // This queue streams events synchronously but doesn't block the main thread
+        ConcurrentLinkedDeque<RoomStateDto> roomStateDtos = roomEventHashMap.get(roomCode);
+
+        // Add events to the queue based on their importance
+        switch (roomEvent.roomEventType()){
+            case ROOM_EXPIRY -> roomStateDtos.addFirst(roomStateDto);
+            case ROOM_LEAVE -> roomStateDtos.addLast(roomStateDto);
+            default -> roomStateDtos.add(roomStateDto);
+        }
+
+        processQueueForRoom(roomCode);
+    }
+
+
+    /**
+     * This process events for a room through a thread safe queue {@link ConcurrentLinkedDeque}.
+     * @param roomCode The roomCode of the room
+     * */
+    private void processQueueForRoom(String roomCode){
+        Map<String, SseEmitter> roomEmitters = sseEmitters.get(roomCode);
+
+        //The queue which handles the sequential room state processing logic of that room
+        Queue<RoomStateDto> roomStateDtos = roomEventHashMap.get(roomCode);
+        if(roomStateDtos == null)return;
+
+        //Ensure only one thread can emit to the room at all times to prevent race conditions
+        synchronized (roomStateDtos){
+            RoomStateDto queuedDto;
+            while ((queuedDto = roomStateDtos.poll()) != null){
+                if (roomEmitters != null){
+                    streamRoomEventToRoom(roomEmitters, queuedDto);
+                }else{
+                    log.info("No active sessions found for room: {}", roomCode);
+                }
+            }
+
         }
     }
 
-    public void emitRoomStateOnLogin(SseEmitter emitter, String roomCode, String sessionId){
+    //This method sequentially streams room events to all members of a room
+    private void streamRoomEventToRoom(Map<String, SseEmitter> roomEmitters, RoomStateDto finalQueuedDto){
+        String roomCode = finalQueuedDto.roomCode();
+        roomEmitters.forEach((sessionId, emitter) -> {
+            try {
+                emitter.send(finalQueuedDto);
+                log.info("Sent message to session {} in room {}", sessionId, roomCode);
+            } catch (IOException e) {
+                log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomCode, e.getMessage());
+                emitter.completeWithError(e);
+            } catch (AccessDeniedException e){
+                log.error("Authorization error occurred during streaming. Terminating gracefully...", e);
+                emitter.completeWithError(e);
+            }catch (Exception e){
+                log.error("Unexpected error occurred during streaming. Terminating gracefully...", e);
+                emitter.completeWithError(e);
+            }
+        });
+    }
+
+    //Immediately emits the room state for a user on login/room join
+    public void emitRoomStateOnRoomJoin(SseEmitter emitter, String roomCode, String sessionId){
         RoomStateDto roomStateDto =
                 roomStateBuilder.get(roomCode, null);
 
