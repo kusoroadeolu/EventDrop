@@ -429,7 +429,7 @@ class EventDropPWA {
                     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                         const registration = await navigator.serviceWorker.getRegistration();
                         if (registration) {
-                            registration.update();
+                            await registration.update();
                         }
                     }
                 }, 30000);

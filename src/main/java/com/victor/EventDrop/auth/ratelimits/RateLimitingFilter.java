@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,10 +38,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int DEFAULT_REDIS_EXPIRATION_DURATION = 5;
 
     /**
-     * A filter which checks on every request to ensure an IP address hasnt exceeded their rate limit
+     * A filter which checks on every request to ensure an IP address hasn't exceeded their rate limit
      * */
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         String ipAddress = request.getRemoteAddr();
         String requestURI = request.getRequestURI();
         String method = request.getMethod();

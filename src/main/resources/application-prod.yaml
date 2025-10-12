@@ -42,8 +42,6 @@ spring:
     virtual:
       enabled: true
 
-  thread-executor: virtual
-
   servlet:
     multipart:
       max-file-size: 100MB

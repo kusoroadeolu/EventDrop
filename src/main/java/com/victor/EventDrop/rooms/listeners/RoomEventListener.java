@@ -105,7 +105,7 @@ public class RoomEventListener
                 emitter.send(finalQueuedDto);
                 log.info("Sent message to session {} in room {}", sessionId, roomCode);
             } catch (IOException e) {
-                log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomCode, e.getMessage());
+                log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomCode, e.getMessage(), e);
                 emitter.completeWithError(e);
             } catch (AccessDeniedException e){
                 log.error("Authorization error occurred during streaming. Terminating gracefully...", e);
@@ -127,7 +127,7 @@ public class RoomEventListener
                 emitter.send(roomStateDto);
                 log.info("Sent initial state to session {} in room {}", sessionId, roomCode);
             }catch (IOException e){
-                log.error("Failed to send room state on login to session {} in room {}: {}", sessionId, roomCode, e.getMessage());
+                log.error("Failed to send room state on login to session {} in room {}: {}", sessionId, roomCode, e.getMessage(), e);
                 emitter.completeWithError(e);
             }
         });

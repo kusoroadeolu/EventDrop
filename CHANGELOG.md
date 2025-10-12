@@ -43,4 +43,6 @@ UI/UX improvements
 Averted this by adding a queue based implementation, whereby events can only be emitted one at a time. Tradeoff is that events arent async anymore
 but the frontend state is less prone to errors
 
-
+### 10/12/25
+#### Fixed
++ An issue which cause redis indexed room keys to not be properly deleted from the DB

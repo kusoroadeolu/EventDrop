@@ -281,7 +281,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public void deleteByRoomCode(String roomCode){
         try{
-
+            roomRepository.deleteById(roomCode);
             log.info("Successfully deleted room with room code: {}", roomCode);
         }catch (Exception e){
             log.info("Failed to delete room with room code: {}", roomCode);
