@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisKeyExpiredEvent;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +31,7 @@ public class OccupantServiceImpl implements OccupantService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final OccupantRepository occupantRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${room.max-size}")
     private int maxRoomSize;
@@ -82,20 +85,27 @@ public class OccupantServiceImpl implements OccupantService {
     @Override
     @RabbitListener(queues = "${room.leave.queue-name}")
     public void deleteOccupant(RoomLeaveEvent roomLeaveEvent){
-        log.info("Initiating room occupant deletion for room: {}. Occupant name: {}", roomLeaveEvent.roomCode(), roomLeaveEvent.occupantName());
-        Occupant occupant = occupantRepository.findBySessionId(roomLeaveEvent.sessionId().toString());
+        String name = roomLeaveEvent.occupantName(), session = roomLeaveEvent.sessionId().toString(), roomCode = roomLeaveEvent.roomCode();
 
-        if(occupant != null){
+        log.info("Initiating room occupant deletion for room: {}. Occupant name: {}", roomCode, name);
             try {
-                log.info("Attempting to deleted occupant: {}", occupant.getOccupantName());
-                occupantRepository.deleteByRoomCodeAndSessionId(occupant.getRoomCode(), occupant.getSessionId().toString());
-                log.info("Successfully deleted occupant: {}", occupant.getOccupantName());
-
+                log.info("Attempting to deleted occupant: {}", name);
+                occupantRepository.deleteByRoomCodeAndSessionId(roomLeaveEvent.roomCode(), roomLeaveEvent.sessionId().toString()); //I'm not expiring here for instant updates
+                log.info("Successfully deleted occupant: {}", roomLeaveEvent.occupantName());
+                eventPublisher.publishEvent(
+                        new RoomEvent(
+                                name + " left the room",
+                                LocalDateTime.now(),
+                                RoomEventType.ROOM_LEAVE,
+                                roomCode,
+                                null
+                        )
+                ); //Publish an event after
             } catch (Exception e) {
-                log.info("An unexpected error occurred while trying to delete occupant: {}", occupant.getOccupantName(), e);
-                throw new OccupantDeletionException(String.format("An unexpected error occurred while trying to delete occupant: %s", occupant.getOccupantName()), e);
+                log.info("An unexpected error occurred while trying to delete occupant: {}", roomLeaveEvent.occupantName(), e);
+                throw new OccupantDeletionException(String.format("An unexpected error occurred while trying to delete occupant: %s", name), e);
             }
-        }
+
     }
 
     /**

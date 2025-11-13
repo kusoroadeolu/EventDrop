@@ -221,15 +221,6 @@ public class RoomServiceImpl implements RoomService {
                 )
         );
 
-        eventPublisher.publishEvent(
-                new RoomEvent(
-                        username + " left the room",
-                        LocalDateTime.now(),
-                        RoomEventType.ROOM_LEAVE,
-                        roomCode,
-                        null
-                )
-        );
 
     }
 

@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Service
 @Slf4j
@@ -226,9 +225,6 @@ public class FileDropServiceImpl implements FileDropService {
                         } catch (IOException e) {
                             log.info("Failed to upload file due to an IO Exception", e);
                             throw new FileDropUploadException("Failed to upload file due to an IO Exception", e);
-//                        } catch (CompletionException | AzureException e){
-//                            log.error("");
-//                            throw new FileDropAlreadyExistsException(String.format("Failed to upload %s because it already exists in your room", originalFileName));
                         }
                     })
                     .thenApplyAsync(blobUrl -> {

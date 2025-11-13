@@ -48,3 +48,7 @@ but the frontend state is less prone to errors
 ### 10/12/25
 #### Fixed
 + An issue which cause redis indexed room keys to not be properly deleted from the DB
+
+### 11/13/25
+#### Updated
++ Made the room state more accurate after occupant leaves by ensuring the event is only sent after the occupant is deleted from the DB 
