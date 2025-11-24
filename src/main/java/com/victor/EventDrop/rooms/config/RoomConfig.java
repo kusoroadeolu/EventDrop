@@ -18,7 +18,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @Configuration
 @RequiredArgsConstructor
 public class RoomConfig {
-    private final RoomJoinConfigProperties roomJoinConfigProperties;
     private final RoomExpiryConfigProperties roomExpiryConfigProperties;
     private final RoomLeaveConfigProperties roomLeaveConfigProperties;
 
@@ -32,27 +31,6 @@ public class RoomConfig {
         return new SecureRandom();
     }
 
-    /**
-     * Creates a durable, auto-delete exchange for room join events.
-     *
-     * @return A DirectExchange for room join events.
-     */
-    @Bean
-    public DirectExchange roomJoinExchange(){
-        return new DirectExchange(roomJoinConfigProperties.getExchangeName(), true, false);
-    }
-
-
-    @Bean
-    public Queue roomJoinQueue(){
-        return QueueBuilder.durable(roomJoinConfigProperties.getQueueName()).quorum().build();
-    }
-
-    @Bean
-    public Binding roomJoinBinding(DirectExchange roomJoinExchange, Queue roomJoinQueue){
-        return BindingBuilder.bind(roomJoinQueue).to(roomJoinExchange).with(roomJoinConfigProperties.getRoutingKey());
-    }
-
     @Bean
     public Queue roomLeaveQueue(){
         //Hardcoded string for practice
@@ -61,7 +39,7 @@ public class RoomConfig {
 
     @Bean
     public Binding roomLeaveBinding(DirectExchange roomLeaveExchange, Queue roomLeaveQueue){
-        return BindingBuilder.bind(roomLeaveQueue).to(roomLeaveExchange).with(roomJoinConfigProperties.getRoutingKey());
+        return BindingBuilder.bind(roomLeaveQueue).to(roomLeaveExchange).with(roomLeaveConfigProperties.getRoutingKey());
     }
 
 

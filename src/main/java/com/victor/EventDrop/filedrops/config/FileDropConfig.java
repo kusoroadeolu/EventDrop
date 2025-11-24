@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.core.task.VirtualThreadTaskExecutor;
 import org.springframework.core.task.support.CompositeTaskDecorator;
 import org.springframework.core.task.support.TaskExecutorAdapter;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -29,8 +30,8 @@ public class FileDropConfig {
 
     @Bean
     @Primary
-    public AsyncTaskExecutor asyncTaskExecutor(ExecutorService virtualExecutorService){
-        return new DelegatingSecurityContextAsyncTaskExecutor(new TaskExecutorAdapter(virtualExecutorService));
+    public AsyncTaskExecutor asyncTaskExecutor(){
+        return new DelegatingSecurityContextAsyncTaskExecutor(new VirtualThreadTaskExecutor());
     }
 
     @Bean

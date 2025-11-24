@@ -188,6 +188,9 @@ Simple metrics for tracking rooms created, files uploaded and downloaded
 ## Testing
 Wrote comprehensive unit tests that cover the most common user actions/flows
 
+## Rate Limits
+Implemented a sliding window rate limiter to prevent spam on file operations
+
 ## Key Design Decisions
 **Why these choices:**
 1. **Full SSE snapshots over diffs** - Simpler to implement, handles edge cases better, lightweight payload anyway

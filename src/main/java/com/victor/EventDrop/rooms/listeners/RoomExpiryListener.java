@@ -53,7 +53,8 @@ public class RoomExpiryListener {
 
         handleQueueOnRoomExpiry(roomCode);
         //Send the room event to immediately disconnect users
-        applicationEventPublisher.publishEvent(new RoomEvent(
+        applicationEventPublisher.publishEvent(
+                new RoomEvent(
                 "Room " + roomCode + " has expired",
                 LocalDateTime.now(),
                 RoomEventType.ROOM_EXPIRY,
@@ -62,18 +63,16 @@ public class RoomExpiryListener {
         ));
 
         log.info("Handling expired room: {}", roomCode);
-
         roomEmitterHandler.removeRoomEmitters(roomCode);
+
         try{
             roomService.deleteByRoomCode(roomCode);
-
             // Publishes a message to RabbitMQ to notify other services of the room's expiration.
             rabbitTemplate.convertAndSend(
                     roomExpiryConfigProperties.getExchangeName(),
                     roomExpiryConfigProperties.getRoutingKey(),
                     new RoomExpiryEvent(roomCode)
             );
-
         } catch (Exception e){
             log.error("Failed to handle room expiry for room with code: {}. Cause: {}", roomCode, e.getMessage(), e);
         }
@@ -87,12 +86,10 @@ public class RoomExpiryListener {
         //Ensure no thread can write/read to the queue
         if(queue != null){
             synchronized (queue){
-                roomEventHashMap.remove(roomCode);
-
                 if(!queue.isEmpty()){
-                    //Clear all data in the queue
                     queue.clear();
                 }
+                roomEventHashMap.remove(roomCode);
             }
         }
 

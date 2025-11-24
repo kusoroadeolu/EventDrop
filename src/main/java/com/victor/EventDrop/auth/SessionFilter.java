@@ -38,16 +38,20 @@ public class SessionFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        String path = request.getRequestURI();
+        String requestURI = request.getRequestURI();
+        String method = request.getMethod();
 
         //Handle all favicon ico issues.
-        if ("/favicon.ico".equals(path)) {
+        if ("/favicon.ico".equals(requestURI)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        if(authentication != null && authentication.isAuthenticated()){
-            log.info("User is already authenticated");
+        boolean isAuthenticated = authentication != null && authentication.isAuthenticated();
+        boolean isSseURI = requestURI.startsWith("/rooms") && "GET".equals(method);
+
+        //Since SSE's hit my filter continuously just add checks to prevent flooding my logs with unneeded logs
+        if (isSseURI && isAuthenticated) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -61,30 +65,18 @@ public class SessionFilter extends OncePerRequestFilter {
             return;
         }
 
-        //Since SSE's hit my filter continuously just add checks to prevent flooding my logs with unneeded logs
-        if(!"/rooms".equals(path)){
-            log.info("Attempting to authenticate user with session ID: {}", sessionId);
-        }
-
-
         Occupant occupant = occupantRepository.findBySessionId(sessionId);
 
         if(occupant != null){
-
             if(!roomRepository.existsByRoomCode(occupant.getRoomCode())){
-                log.info("Room: {} does not exist again", occupant.getRoomCode());
                 SecurityContextHolder.clearContext();
-
             }else{
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(occupant, null , List.of(occupant.getOccupantRole()));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                redisTemplate.expire("occupant:" + sessionId, Duration.ofMinutes(5));
+                log.info("Successfully authenticated user and refreshed session ID.");
 
-                if(!"/rooms".equals(path)){
-                    //Refresh the session
-                    redisTemplate.expire("occupant:" + sessionId, Duration.ofMinutes(5));
-                    log.info("Successfully authenticated user and refreshed session ID.");
-                }
             }
 
         }else{

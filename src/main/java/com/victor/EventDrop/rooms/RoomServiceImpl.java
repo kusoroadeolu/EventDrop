@@ -5,7 +5,6 @@ import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
 import com.victor.EventDrop.occupants.OccupantRoomJoinResponse;
 import com.victor.EventDrop.occupants.OccupantService;
-import com.victor.EventDrop.rooms.configproperties.RoomJoinConfigProperties;
 import com.victor.EventDrop.rooms.configproperties.RoomLeaveConfigProperties;
 import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinRequestDto;
@@ -39,7 +38,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RoomServiceImpl implements RoomService {
 
-    private final RoomJoinConfigProperties roomJoinConfigProperties;
     private final RoomLeaveConfigProperties roomLeaveConfigProperties;
     private final RoomRepository roomRepository;
     private final RabbitTemplate rabbitTemplate;
@@ -188,6 +186,7 @@ public class RoomServiceImpl implements RoomService {
                     log.info("Cannot join room because room is full");
                     throw new RoomFullException("Cannot join room because room is full");
                 }
+
                 case 500 -> {
                     log.info("An unexpected error occurred while trying to join this room");
                     throw new RoomJoinException("An unexpected error occurred while trying to join this room");

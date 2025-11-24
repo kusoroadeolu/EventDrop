@@ -89,8 +89,6 @@ public class RoomEventListener
             while ((queuedDto = roomStateDtos.poll()) != null){
                 if (roomEmitters != null){
                     streamRoomEventToRoom(roomEmitters, queuedDto);
-                }else{
-                    log.info("No active sessions found for room: {}", roomCode);
                 }
             }
 
@@ -101,11 +99,11 @@ public class RoomEventListener
     private void streamRoomEventToRoom(Map<String, SseEmitter> roomEmitters, RoomStateDto finalQueuedDto){
         String roomCode = finalQueuedDto.roomCode();
         roomEmitters.forEach((sessionId, emitter) -> {
+            if(emitter == null) return;
             try {
                 emitter.send(finalQueuedDto);
-                log.info("Sent message to session {} in room {}", sessionId, roomCode);
             } catch (IOException e) {
-                log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomCode, e.getMessage(), e);
+                log.error("Failed to send room state to session {} in room {}: {}", sessionId, roomCode, e.getMessage());
                 emitter.completeWithError(e);
             } catch (AccessDeniedException e){
                 log.error("Authorization error occurred during streaming. Terminating gracefully...", e);

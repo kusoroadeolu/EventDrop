@@ -2,6 +2,7 @@ package com.victor.EventDrop.occupants;
 
 import com.victor.EventDrop.exceptions.OccupantDeletionException;
 import com.victor.EventDrop.rooms.events.*;
+import com.victor.EventDrop.rooms.orchestrators.RoomStateDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
@@ -16,12 +17,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class OccupantServiceImpl implements OccupantService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OccupantRepository occupantRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters;
 
     @Value("${room.max-size}")
     private int maxRoomSize;
@@ -81,12 +86,13 @@ public class OccupantServiceImpl implements OccupantService {
     @RabbitListener(queues = "${room.leave.queue-name}")
     public void deleteOccupant(RoomLeaveEvent roomLeaveEvent){
         String name = roomLeaveEvent.occupantName(), session = roomLeaveEvent.sessionId().toString(), roomCode = roomLeaveEvent.roomCode();
-
         log.info("Initiating  occupant deletion for room: {}. Occupant name: {}", roomCode, name);
+        log.info("Count before leave: {}", this.getOccupantCount(roomCode));
             try {
                 log.info("Attempting to deleted occupant: {}", name);
-                occupantRepository.deleteByRoomCodeAndSessionId(roomLeaveEvent.roomCode(), session); //I'm not expiring here for instant updates
+                occupantRepository.deleteById(UUID.fromString(session)); //I'm not expiring here for instant updates
                 log.info("Successfully deleted occupant: {}", roomLeaveEvent.occupantName());
+                cleanupEmitter(roomCode, session);
                 this.eventPublisher.publishEvent(
                         new RoomEvent(
                                 name + " left the room",
@@ -96,6 +102,7 @@ public class OccupantServiceImpl implements OccupantService {
                                 null
                         )
                 ); //Publish an event after leave
+                log.info("Count after leave: {}", this.getOccupantCount(roomCode));
             } catch (Exception e) {
                 log.info("An unexpected error occurred while trying to delete occupant: {}", roomLeaveEvent.occupantName(), e);
                 throw new OccupantDeletionException(String.format("An unexpected error occurred while trying to delete occupant: %s", name), e);
@@ -110,8 +117,7 @@ public class OccupantServiceImpl implements OccupantService {
      * */
     @Override
     public int getOccupantCount(String roomCode){
-        return occupantRepository.findByRoomCode(roomCode)
-                 .size();
+        return occupantRepository.findByRoomCode(roomCode).size();
     }
 
     /**
@@ -125,7 +131,6 @@ public class OccupantServiceImpl implements OccupantService {
     public void handleRoomExpiry(RoomExpiryEvent roomExpiryEvent){
         String roomCode = roomExpiryEvent.roomCode();
         log.info("Handling room expiry for occupants for room with room code: {}", roomCode);
-
 
         try {
             List<Occupant> occupants = occupantRepository.findByRoomCode(roomExpiryEvent.roomCode());
@@ -150,8 +155,9 @@ public class OccupantServiceImpl implements OccupantService {
             log.error("Failed to delete expired occupants in room with room code: {}", roomCode, e);
             throw new AmqpRejectAndDontRequeueException(String.format("Failed to delete expired occupants in room with room code: %s", roomCode), e);
         }
-
     }
+
+
 
     /**
      * A listener method that handles Redis key expiration events for occupants.
@@ -190,5 +196,18 @@ public class OccupantServiceImpl implements OccupantService {
             log.error("Failed to delete expired occupant with session ID: {}", sessionId, e);
         }
 
+    }
+
+    private synchronized void cleanupEmitter(String roomCode, String session){
+        ConcurrentHashMap<String, SseEmitter> map = sseEmitters.get(roomCode);
+        if(map != null && !map.isEmpty()){
+            SseEmitter emitter = map.get(session);
+            if(emitter != null){
+                emitter.complete();
+                map.remove(session);
+            }
+        }
+
+        log.info("Successfully cleaned up emitter");
     }
 }

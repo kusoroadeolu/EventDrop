@@ -4,7 +4,6 @@ import com.victor.EventDrop.exceptions.*;
 import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
 import com.victor.EventDrop.occupants.OccupantRoomJoinResponse;
-import com.victor.EventDrop.rooms.configproperties.RoomJoinConfigProperties;
 import com.victor.EventDrop.rooms.configproperties.RoomLeaveConfigProperties;
 import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
 import com.victor.EventDrop.rooms.dtos.RoomJoinRequestDto;
@@ -34,8 +33,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class RoomServiceImplTest {
 
-    @Mock
-    private RoomJoinConfigProperties roomJoinConfigProperties;
     @Mock
     private RoomLeaveConfigProperties roomLeaveConfigProperties;
     @Mock
@@ -105,13 +102,12 @@ class RoomServiceImplTest {
         try(MockedStatic<UUID> staticUuid = mockStatic(UUID.class)){
             staticUuid.when(UUID::randomUUID).thenReturn(sessionIdAsUuid);
             assertEquals(sessionIdAsUuid.toString(), sessionId);
-            when(roomJoinConfigProperties.getRoutingKey()).thenReturn("room-join-routing-key-");
             when(rabbitTemplate.convertSendAndReceive(
                     anyString(),
                     anyString(),
                     any(RoomJoinEvent.class)
             )).thenReturn(occupantRoomJoinResponse);
-            when(roomJoinConfigProperties.getExchangeName()).thenReturn("room-join-exchange");
+
             when(roomMapper.toRoomJoinResponseDto(room, sessionId , "my_name")).thenReturn(roomJoinResponseDto);
 
 
@@ -183,13 +179,11 @@ class RoomServiceImplTest {
         try(MockedStatic<UUID> staticUuid = mockStatic(UUID.class)){
             staticUuid.when(UUID::randomUUID).thenReturn(sessionIdAsUuid);
             assertEquals(sessionIdAsUuid.toString(), sessionId);
-            when(roomJoinConfigProperties.getRoutingKey()).thenReturn("room-join-routing-key-");
             when(rabbitTemplate.convertSendAndReceive(
                     anyString(),
                     anyString(),
                     any(RoomJoinEvent.class)
             )).thenReturn(occupantRoomJoinResponse);
-            when(roomJoinConfigProperties.getExchangeName()).thenReturn("room-join-exchange");
             when(roomMapper.toRoomJoinResponseDto(room, sessionId , "my_name")).thenReturn(roomJoinResponseDto);
 
 

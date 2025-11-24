@@ -32,11 +32,6 @@ spring:
           endpoint: ${AZURE_BLOB_ENDPOINT}
           container-name: eventdrop-uploads
 
-  logging:
-    level:
-      org.springframework.boot.autoconfigure: DEBUG
-      org.hibernate.engine.jdbc.env.internal.LobCreatorBuilderImpl: WARN
-      root: INFO
 
   threads:
     virtual:
@@ -53,10 +48,6 @@ room:
   max-size: 30 #Max amount of people allowed in a room
   file-count-threshold: 30
   file-size-threshold: 2147483648 #Threshold in bytes
-  join:
-    queue-name: room-join-queue
-    routing-key: room-join-routing-key
-    exchange-name: room-join-exchange
   leave:
     queue-name: room-leave-queue
     routing-key: room-leave-routing-key

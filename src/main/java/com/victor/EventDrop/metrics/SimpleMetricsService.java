@@ -2,18 +2,12 @@ package com.victor.EventDrop.metrics;
 
 import com.victor.EventDrop.rooms.events.RoomEvent;
 import com.victor.EventDrop.rooms.events.RoomEventType;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Assert;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
@@ -21,10 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SimpleMetricsService implements CommandLineRunner {
     private final RedisTemplate<String, Object> redisTemplate;
 
-
-
     @EventListener
-    public void handleEvents(RoomEvent roomEvent){
+    public void logMetrics(RoomEvent roomEvent){
         RoomEventType eventType = roomEvent.roomEventType();
 
         switch (eventType){

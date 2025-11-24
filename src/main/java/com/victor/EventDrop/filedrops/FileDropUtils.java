@@ -31,8 +31,6 @@ public class FileDropUtils {
     private int roomFileCountThreshold;
 
 
-
-
     /**
      * Calculates the total size of all files in a specific room.
      *

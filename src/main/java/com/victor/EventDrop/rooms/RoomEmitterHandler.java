@@ -13,15 +13,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RoomEmitterHandler {
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SseEmitter>> sseEmitters;
 
-    public void removeEmitter(String roomCode, String sessionId) {
+    public synchronized void removeEmitter(String roomCode, String sessionId) {
         ConcurrentHashMap<String, SseEmitter> sessionsInRoom = sseEmitters.get(roomCode);
-
-
         if (sessionsInRoom != null) {
+            SseEmitter emitter = sessionsInRoom.get(sessionId);
+
+            if(emitter != null) emitter.complete();
             sessionsInRoom.remove(sessionId);
             if (sessionsInRoom.isEmpty()) {
                 removeRoomEmitters(roomCode);
             }
+
         }
 
 

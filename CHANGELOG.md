@@ -56,3 +56,7 @@ but the frontend state is less prone to errors
 ### 11/24/25
 #### Updated
 + Removed rabbit mq queues for room joins. Rather room joins are treated as one complete atomic event. Reducing rabbit mq overhead and latency when joining rooms
+
+#### Fixed
++ Fixed an issue where room leaves failed to display the current state of occupants in the room
++ Fixed an issue where room leaves weren't triggered at all till room expiry
