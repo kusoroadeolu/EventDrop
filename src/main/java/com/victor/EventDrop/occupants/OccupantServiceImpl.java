@@ -42,8 +42,6 @@ public class OccupantServiceImpl implements OccupantService {
      * @return A join response indicating if the occupant object was created successfully
      * */
     @Override
-    @RabbitListener(queues = "${room.join.queue-name}")
-    @Retryable(retryFor = ListenerExecutionFailedException.class, backoff = @Backoff(multiplier = 3, maxDelay = 3500L))
     public OccupantRoomJoinResponse createOccupant(RoomJoinEvent roomJoinEvent){
         log.info("Initiating room occupant creation for room: {}", roomJoinEvent.roomCode());
 
@@ -63,18 +61,15 @@ public class OccupantServiceImpl implements OccupantService {
                 .sessionId(roomJoinEvent.sessionId())
                 .build();
 
-
         try {
             log.info("Attempting to save occupant: {}", occupant.getOccupantName());
             occupantRepository.save(occupant);
             log.info("Successfully saved occupant: {}", occupant.getOccupantName());
             return new OccupantRoomJoinResponse(true, 200);
-        } catch (ListenerExecutionFailedException e){
-            log.info("Execution of method listener failed  {}", occupant.getOccupantName(), e);
-            return new OccupantRoomJoinResponse(false, 500);
         }catch (Exception e){
             log.info("An unexpected error occurred while trying to save occupant: {}", occupant.getOccupantName(), e);
-            return new OccupantRoomJoinResponse(false, 500);        }
+            return new OccupantRoomJoinResponse(false, 500);
+        }
 
     }
 
@@ -87,12 +82,12 @@ public class OccupantServiceImpl implements OccupantService {
     public void deleteOccupant(RoomLeaveEvent roomLeaveEvent){
         String name = roomLeaveEvent.occupantName(), session = roomLeaveEvent.sessionId().toString(), roomCode = roomLeaveEvent.roomCode();
 
-        log.info("Initiating room occupant deletion for room: {}. Occupant name: {}", roomCode, name);
+        log.info("Initiating  occupant deletion for room: {}. Occupant name: {}", roomCode, name);
             try {
                 log.info("Attempting to deleted occupant: {}", name);
-                occupantRepository.deleteByRoomCodeAndSessionId(roomLeaveEvent.roomCode(), roomLeaveEvent.sessionId().toString()); //I'm not expiring here for instant updates
+                occupantRepository.deleteByRoomCodeAndSessionId(roomLeaveEvent.roomCode(), session); //I'm not expiring here for instant updates
                 log.info("Successfully deleted occupant: {}", roomLeaveEvent.occupantName());
-                eventPublisher.publishEvent(
+                this.eventPublisher.publishEvent(
                         new RoomEvent(
                                 name + " left the room",
                                 LocalDateTime.now(),
@@ -100,7 +95,7 @@ public class OccupantServiceImpl implements OccupantService {
                                 roomCode,
                                 null
                         )
-                ); //Publish an event after
+                ); //Publish an event after leave
             } catch (Exception e) {
                 log.info("An unexpected error occurred while trying to delete occupant: {}", roomLeaveEvent.occupantName(), e);
                 throw new OccupantDeletionException(String.format("An unexpected error occurred while trying to delete occupant: %s", name), e);

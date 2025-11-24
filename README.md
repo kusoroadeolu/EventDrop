@@ -1,4 +1,4 @@
-# EventDrop API Documentation
+ # EventDrop API Documentation
 
 EventDrop is basically my solution to stop sending files through Discord/WhatsApp to get them on my phone. It's an ephemeral file sharing system where you create temporary rooms, share files, and everything auto-deletes after a set time.
 Built this with Spring Boot, Redis, RabbitMQ, and Azure Blob Storage. 

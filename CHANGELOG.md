@@ -52,3 +52,7 @@ but the frontend state is less prone to errors
 ### 11/13/25
 #### Updated
 + Made the room state more accurate after occupant leaves by ensuring the event is only sent after the occupant is deleted from the DB 
+
+### 11/24/25
+#### Updated
++ Removed rabbit mq queues for room joins. Rather room joins are treated as one complete atomic event. Reducing rabbit mq overhead and latency when joining rooms

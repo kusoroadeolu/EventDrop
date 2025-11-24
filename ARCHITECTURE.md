@@ -13,7 +13,7 @@ No accounts, no permanent storage, minimal friction.
 
 ## Frontend (Web App)
 Multiple page app that works on desktop and mobile. 
-Planning to make it a PWA eventually.
+PWA Supported
 
 
 **Role system:**
@@ -43,7 +43,7 @@ Redis acts as the primary data store for rooms, occupants, and file metadata.
 The system uses a hybrid event-driven approach:
 
 - **RabbitMQ (asynchronous business logic):**  
-  Handles heavy events like room joins, leaves, and expiry.  
+  Handles async(fire and forget) events like room leaves, and expiry.  
   This keeps API calls snappy — complex logic (like cascading file deletions) runs in the background.
 
 - **Spring ApplicationEventPublisher (in-process events):**  
@@ -168,7 +168,7 @@ This is essential to prevent any data leaks that will consume resources.
 ### Error Handling
 
 **RabbitMQ listeners:**
-- 3 queues 3 message types and 3 bindings for room join, leave, expiry events
+- 2 queues 2 message types and 2 bindings for room leave, expiry events
 - ListenerExecutionFailedException → requeue message/retry
 - Generic exceptions → reject and don't requeue (prevents infinite loops)
 - Room expiry failures just get logged (it's a one-time event anyway, these will later get cleaned up eventually)
@@ -181,7 +181,9 @@ This is essential to prevent any data leaks that will consume resources.
 ### User Experience
 Room expiration is now handled gracefully. When a room expires, a boolean flag is set to true in the room's state. 
 The frontend, upon receiving this update via SSE, redirects the user to the create/join room page, providing a seamless and intentional transition.
-This  approach centralizes the expiration logic and avoids complex HTTP status code handling on the frontend. (Parsing http status codes with SSE emitters is a nightmare)
+This  approach centralizes the expiration logic and avoids complex HTTP status code handling on the frontend. (Parsing http status codes with SSE emitters is a nightmare
+Added PWAs for a mobile friendly alternative
+Simple metrics for tracking rooms created, files uploaded and downloaded
 
 ## Testing
 Wrote comprehensive unit tests that cover the most common user actions/flows

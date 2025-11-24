@@ -4,6 +4,7 @@ import com.victor.EventDrop.exceptions.*;
 import com.victor.EventDrop.occupants.Occupant;
 import com.victor.EventDrop.occupants.OccupantRole;
 import com.victor.EventDrop.occupants.OccupantRoomJoinResponse;
+import com.victor.EventDrop.occupants.OccupantService;
 import com.victor.EventDrop.rooms.configproperties.RoomJoinConfigProperties;
 import com.victor.EventDrop.rooms.configproperties.RoomLeaveConfigProperties;
 import com.victor.EventDrop.rooms.dtos.RoomCreateRequestDto;
@@ -46,6 +47,7 @@ public class RoomServiceImpl implements RoomService {
     private final SecureRandom secureRandom;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
+    private final OccupantService occupantService;
     @Value("${room.max-ttl-in-minutes}")
     private long maxTtlInMins;
 
@@ -152,12 +154,8 @@ public class RoomServiceImpl implements RoomService {
         log.info("Found room with room code: {}. Joining... ", roomCode);
         UUID sessionId = UUID.randomUUID();
 
-        //Sends a blocking room creation event to create an occupant. Expects a room join response
-        OccupantRoomJoinResponse roomJoinResponse = (OccupantRoomJoinResponse) rabbitTemplate.convertSendAndReceive(
-                roomJoinConfigProperties.getExchangeName(),
-                roomJoinConfigProperties.getRoutingKey(),
-                new RoomJoinEvent(username, sessionId ,roomJoinRequestDto.getRole(),roomJoinRequestDto.getRoomCode(), room.getExpiresAt())
-        );
+        //Join a room
+        OccupantRoomJoinResponse roomJoinResponse = occupantService.createOccupant(new RoomJoinEvent(username, sessionId ,roomJoinRequestDto.getRole(),roomJoinRequestDto.getRoomCode(), room.getExpiresAt()));
 
         handleRoomJoinResponse(roomJoinResponse);
 
@@ -211,8 +209,6 @@ public class RoomServiceImpl implements RoomService {
         String roomCode = occupant.getRoomCode();
         String username = occupant.getOccupantName();
 
-        Room room = findByRoomCode(roomCode);
-
         rabbitTemplate.convertAndSend(
                 roomLeaveConfigProperties.getExchangeName(),
                 roomLeaveConfigProperties.getRoutingKey(),
@@ -220,6 +216,8 @@ public class RoomServiceImpl implements RoomService {
                         roomCode, username , occupant.getSessionId()
                 )
         );
+
+
 
 
     }
